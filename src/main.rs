@@ -77,20 +77,32 @@ fn print_thread(root: &serde_json::Value, depth: usize) -> Thread {
     body      :
         {
             if depth == 0 {
-                String::from(root["content"]["body"].as_str().unwrap())
+                if let Some(body) = root["content"]["body"].as_str() {
+                    String::from(body)
+                } else {
+                    String::from("[ÜRES]")
+                }
             } else {
-                String::from(root["message"].as_str().unwrap())
+                if let Some(body) = root["message"].as_str() {
+                    String::from(body)
+                } else {
+                    String::from("[ÜRES]")
+                }
             }
         }
     };
 
     if depth == 0 {
-        for msg in root["comments"]["comments"].as_array().unwrap() {
-            head.replies.push(print_thread(msg, depth+2));
+        if let Some(comments) = root["comments"]["comments"].as_array() {
+            for msg in comments {
+                head.replies.push(print_thread(msg, depth+2));
+            }
         }
     } else {
-        for msg in root["replies"]["comments"].as_array().unwrap() {
-            head.replies.push(print_thread(msg, depth+2));
+        if let Some(comments) = root["replies"]["comments"].as_array() {
+            for msg in comments {
+                head.replies.push(print_thread(msg, depth+2));
+            }
         }
     }
 
@@ -130,12 +142,38 @@ fn main() {
 //https://boards.eune.leagueoflegends.com/api/VFnq5EbB/discussions/YhLAqrRM
 //
 
-    let poszt = poszt_letoltes(&String::from("VFnq5EbB"), &String::from("LtjfPhOk"));
+    let ids = user(String::from("Nemin"));
+    let mut threads = Vec::new();
 
-    let mut file = std::fs::File::create(&format!("./nemin/test.json")).unwrap();//, poszt["discussion"]["title"])).unwrap();
-    let thread = print_thread(&poszt["discussion"], 0);
+    for (i, (app_id, disc_id)) in ids.iter().enumerate() {
+        let app_id = app_id.clone();
+        let disc_id = disc_id.clone();
 
-    serde_json::to_writer(&mut file, &thread);
+        threads.push(std::thread::spawn(move || {
+        let poszt = poszt_letoltes(&app_id, &disc_id);
+
+        println!("Kezdés: {}", poszt["discussion"]["title"]);
+
+        let mut file = std::fs::File::create(&format!("./nemin/{}.txt", i)).unwrap();
+        let thread = print_thread(&poszt["discussion"], 0);
+
+        serde_json::to_writer(&mut file, &thread).unwrap();
+
+        println!("Vég: {}", poszt["discussion"]["title"]);
+        }));
+    }
+
+    //let mut posztok = Vec::new();
+
+    for t in threads {
+        //posztok.push(t.join());
+        //
+        t.join().unwrap();
+    }
+
+    //let poszt = poszt_letoltes(&String::from("VFnq5EbB"), &String::from("LtjfPhOk"));
+
+
 
     //let posts = user(String::from("Nemin"));
 
