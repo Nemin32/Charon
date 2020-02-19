@@ -65,28 +65,49 @@ fn poszt_letoltes(app_id: &String, disc_id: &String) -> serde_json::Value {
     serde_json::from_str(&make_request(url)).unwrap()
 }
 
-fn print_thread(root: &serde_json::Value, depth: usize, file: &mut std::fs::File) {
+fn print_thread(root: &serde_json::Value, depth: usize) -> Thread {
+    use std::convert::TryInto;
+
+    let mut head = Thread {
+    poster    : String::from(root["user"]["name"].as_str().unwrap()),
+    date      : String::from(root["createdAt"].as_str().unwrap()),
+    upVotes   : root["downVotes"].as_u64().unwrap().try_into().unwrap(),
+    downVotes : root["upVotes"].as_u64().unwrap().try_into().unwrap(),
+    replies   : Vec::new(),
+    body      :
+        {
+            if depth == 0 {
+                String::from(root["content"]["body"].as_str().unwrap())
+            } else {
+                String::from(root["message"].as_str().unwrap())
+            }
+        }
+    };
+
     if depth == 0 {
-        write!(file, "{} (+{}/-{}):\n", root["user"]["name"], root["upVotes"], root["downVotes"]).unwrap();
-        print_thread(&root["comments"], 2, file);
-    }
-    else {
-        let mut buffer = String::with_capacity(100);
-
-        for msg in root["comments"].as_array().unwrap() {
-            for i in 0..depth-1 {buffer.push('-');}
-            buffer.push_str("> ");
-
-            buffer.push_str(&format!("{} (+{}/-{}):\n", msg["user"]["name"].as_str().unwrap(), msg["upVotes"], msg["downVotes"]));
-
-            for i in 0..depth {buffer.push(' ');}
-            buffer.push_str(&msg["message"].as_str().unwrap());
-
-            write!(file, "{}\n", buffer).unwrap();
-
-            print_thread(&msg["replies"], depth+2, file);
+        for msg in root["comments"]["comments"].as_array().unwrap() {
+            head.replies.push(print_thread(msg, depth+2));
+        }
+    } else {
+        for msg in root["replies"]["comments"].as_array().unwrap() {
+            head.replies.push(print_thread(msg, depth+2));
         }
     }
+
+    head
+}
+
+
+use serde::{Deserialize, Serialize};
+
+#[derive(Deserialize, Serialize)]
+struct Thread {
+    poster: String,
+    date: String,
+    upVotes: usize,
+    downVotes: usize,
+    body: String,
+    replies: Vec<Thread>
 }
 
 fn main() {
@@ -111,8 +132,10 @@ fn main() {
 
     let poszt = poszt_letoltes(&String::from("VFnq5EbB"), &String::from("LtjfPhOk"));
 
-    let mut file = std::fs::File::create(&format!("./nemin/{}.txt", poszt["discussion"]["title"])).unwrap();
-    print_thread(&poszt["discussion"], 0, &mut file);
+    let mut file = std::fs::File::create(&format!("./nemin/test.json")).unwrap();//, poszt["discussion"]["title"])).unwrap();
+    let thread = print_thread(&poszt["discussion"], 0);
+
+    serde_json::to_writer(&mut file, &thread);
 
     //let posts = user(String::from("Nemin"));
 
