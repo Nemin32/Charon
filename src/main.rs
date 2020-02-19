@@ -27,7 +27,7 @@ fn top_poszt(n: usize) {
     todo!();
 }
 
-fn user(nev: String) -> Vec<(String, String)> {
+fn get_user_thread_ids(nev: String) -> Vec<(String, String)> {
     use regex::Regex;
     lazy_static! {
         static ref REG: Regex = Regex::new(r#"data-application-id="(.*?)" data-discussion-id="(.*?)""#).unwrap();
@@ -60,7 +60,7 @@ fn user(nev: String) -> Vec<(String, String)> {
     results
 }
 
-fn poszt_letoltes(app_id: &String, disc_id: &String) -> serde_json::Value {
+fn download_post(app_id: &String, disc_id: &String) -> serde_json::Value {
     let url = format!("/api/{}/discussions/{}", app_id, disc_id);
     serde_json::from_str(&make_request(url)).unwrap()
 }
@@ -132,9 +132,15 @@ fn main() {
     println!("{}", input.len());*/
 
 //https://boards.eune.leagueoflegends.com/api/VFnq5EbB/discussions/YhLAqrRM
-//
 
-    let ids = user(String::from("Nemin"));
+    let _ = std::fs::create_dir("posztok");
+
+    let username = "Nemin";
+
+    let ids = get_user_thread_ids(String::from(username));
+    let _ = std::fs::create_dir(format!("./posztok/{}", username));
+
+
     let mut threads = Vec::new();
 
     for (i, (app_id, disc_id)) in ids.iter().enumerate() {
@@ -142,11 +148,11 @@ fn main() {
         let disc_id = disc_id.clone();
 
         threads.push(std::thread::spawn(move || {
-        let poszt = poszt_letoltes(&app_id, &disc_id);
+        let poszt = download_post(&app_id, &disc_id);
 
         println!("Kezdés: {}", poszt["discussion"]["title"]);
 
-        let mut file = std::fs::File::create(&format!("./nemin/{}.txt", i)).unwrap();
+        let mut file = std::fs::File::create(&format!("./posztok/{}/{}.txt", username, i)).unwrap();
         let thread = print_thread(&poszt["discussion"], 0);
 
         serde_json::to_writer(&mut file, &thread).unwrap();
@@ -163,13 +169,13 @@ fn main() {
         t.join().unwrap();
     }
 
-    //let poszt = poszt_letoltes(&String::from("VFnq5EbB"), &String::from("LtjfPhOk"));
+    //let poszt = download_post(&String::from("VFnq5EbB"), &String::from("LtjfPhOk"));
 
 
 
-    //let posts = user(String::from("Nemin"));
+    //let posts = get_user_thread_ids(String::from("Nemin"));
 
-    //let letoltes = poszt_letoltes(&posts[0].0, &posts[0].1);
+    //let letoltes = download_post(&posts[0].0, &posts[0].1);
 
     //print_thread(&letoltes["discussion"], 0, &mut file);
 
