@@ -69,25 +69,17 @@ fn print_thread(root: &serde_json::Value, depth: usize) -> Thread {
     use std::convert::TryInto;
 
     let mut head = Thread {
-    poster    : String::from(root["user"]["name"].as_str().unwrap()),
-    date      : String::from(root["createdAt"].as_str().unwrap()),
+    poster    : String::from(root["user"]["name"].as_str().unwrap_or("[NEM SIKERÜLT KIOLVASNI]")),
+    date      : String::from(root["createdAt"].as_str().unwrap_or("[NEM SIKERÜLT KIOLVASNI]")),
     upVotes   : root["downVotes"].as_u64().unwrap().try_into().unwrap(),
     downVotes : root["upVotes"].as_u64().unwrap().try_into().unwrap(),
     replies   : Vec::new(),
     body      :
         {
             if depth == 0 {
-                if let Some(body) = root["content"]["body"].as_str() {
-                    String::from(body)
-                } else {
-                    String::from("[ÜRES]")
-                }
+                String::from(root["content"]["body"].as_str().unwrap_or("[ÜRES]"))
             } else {
-                if let Some(body) = root["message"].as_str() {
-                    String::from(body)
-                } else {
-                    String::from("[ÜRES]")
-                }
+                String::from(root["message"].as_str().unwrap_or("[ÜRES]"))
             }
         }
     };
