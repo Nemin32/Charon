@@ -1,0 +1,176 @@
+CHARON vagyok, az alvilág hajósa.
+Válaszd ki mit akarsz tenni:
+
+1 - Top posztok lementése.
+2 - Egy felhasználó posztjainak lementése.
+3 - Egy specifikus poszt letöltése.
+"VFnq5EbB" | "LtjfPhOk"
+"U27WP9bK" | "I2enxsTi"
+"VFnq5EbB" | "O5QQ5js4"
+"U27WP9bK" | "0dG2mIK5"
+"U27WP9bK" | "y3Ui7t3H"
+"U27WP9bK" | "EsiEhiuW"
+"YzZuykbk" | "047yEUqf"
+"YzZuykbk" | "s8X3EFs6"
+"VFnq5EbB" | "iivgypsm"
+"YzZuykbk" | "y1n22jvl"
+"VFnq5EbB" | "q1Q9E6PQ"
+"VFnq5EbB" | "oHEtIxG7"
+"YzZuykbk" | "jHZnmQI1"
+"YzZuykbk" | "eAh4Ww9t"
+"YzZuykbk" | "p4fUgnPz"
+"VFnq5EbB" | "ymuydwEr"
+"YzZuykbk" | "xXrxUxlg"
+"U27WP9bK" | "6VPMYRd2"
+"VFnq5EbB" | "p6c0zREZ"
+"U27WP9bK" | "xN6j4RLV"
+"VFnq5EbB" | "zyUjTEiV"
+"YzZuykbk" | "W0E7nR5p"
+"YzZuykbk" | "nq7ht1Bp"
+"VFnq5EbB" | "0iAUeAQf"
+"VFnq5EbB" | "c5MifgXm"
+"U27WP9bK" | "rFTE9AEt"
+"VFnq5EbB" | "HZwy2jXE"
+"VFnq5EbB" | "JEBis9t0"
+"VFnq5EbB" | "yEh1weec"
+"VFnq5EbB" | "fytM58yq"
+"YzZuykbk" | "TgvEHELZ"
+"YzZuykbk" | "n08FN61V"
+"VFnq5EbB" | "jkvGstJN"
+"U27WP9bK" | "E5iNBgLW"
+"VFnq5EbB" | "L6vXZI9x"
+"ivlaXAN5" | "kd7HzeIz"
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=100
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=150
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=200
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=250
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=300
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=350
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=400
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=450
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=500
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=550
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=600
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=650
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=700
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=750
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=800
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=850
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=900
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=950
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1000
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1050
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1100
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1150
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1200
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1250
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1300
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1350
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1400
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1450
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1500
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1550
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1600
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1650
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1700
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1750
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1800
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1850
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1900
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=1950
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2000
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2050
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2100
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2150
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2200
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2250
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2300
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2350
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2400
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2450
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2500
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2550
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2600
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2650
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2700
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2750
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2800
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2850
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2900
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=2950
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=3000
+/hu/player/EUNE/Mind The Gap?json_wrap=1&num_loaded=3050
+Catching up...
+Kezdés: "váratlan hiba történt a bejelentkezés során. próbálkozz újra"
+Vég: "váratlan hiba történt a bejelentkezés során. próbálkozz újra"
+Kezdés: "\"Mecha királyságok-belépő csomag\" vásárlás után nincs zseton elszámolás"
+Vég: "\"Mecha királyságok-belépő csomag\" vásárlás után nincs zseton elszámolás"
+Kezdés: "[GYŰJTŐPOSZT] [2019.02.11] Gondok a bejelentkezés során — Nem vagy egyedül!"
+Vég: "[GYŰJTŐPOSZT] [2019.02.11] Gondok a bejelentkezés során — Nem vagy egyedül!"
+Kezdés: "Kitiltottak"
+Vég: "Kitiltottak"
+Kezdés: "Fórum válaszos ikon"
+Vég: "Fórum válaszos ikon"
+Kezdés: "A fórumos értesítésekről"
+Vég: "A fórumos értesítésekről"
+Kezdés: "hiba"
+Vég: "hiba"
+Kezdés: "Kliens bug?"
+Vég: "Kliens bug?"
+Kezdés: "Rugalmas 5V5"
+Vég: "Rugalmas 5V5"
+Kezdés: "Nem tudok bejelentkezni a játékba"
+Vég: "Nem tudok bejelentkezni a játékba"
+Kezdés: "Öngyilkos hajlamot kelt bennem a játék.."
+Vég: "Öngyilkos hajlamot kelt bennem a játék.."
+Kezdés: "Mi lett a magyar közösséggel?"
+Vég: "Mi lett a magyar közösséggel?"
+Kezdés: "A riot pofátlan"
+Vég: "A riot pofátlan"
+Catching up...
+Kezdés: "Teemo és Blitz minirework"
+Vég: "Teemo és Blitz minirework"
+Kezdés: "A barátom kariát törölték minden féle ok nélkül (hurguly10)"
+Vég: "A barátom kariát törölték minden féle ok nélkül (hurguly10)"
+Kezdés: "MS/FPS eltűnése"
+Kezdés: "Ranked rendszer"
+Vég: "MS/FPS eltűnése"
+Vég: "Ranked rendszer"
+Kezdés: "Hiba a játékmód kiválasztásánál"
+Vég: "Hiba a játékmód kiválasztásánál"
+Kezdés: "MIért kapok ezért bannt? Ez most komoly?"
+Vég: "MIért kapok ezért bannt? Ez most komoly?"
+Kezdés: "Rúnák"
+Vég: "Rúnák"
+Kezdés: "Bug"
+Vég: "Bug"
+Kezdés: "Van esély arra ,hogy valaha is visszakapom az accountom ?Permabanned"
+Vég: "Van esély arra ,hogy valaha is visszakapom az accountom ?Permabanned"
+Kezdés: "Miért kapok 3  meccsenként autofill-t?"
+Vég: "Miért kapok 3  meccsenként autofill-t?"
+Kezdés: "Poénos képeim gépujrarakás előtt"
+Vég: "Poénos képeim gépujrarakás előtt"
+Kezdés: ":)"
+Vég: ":)"
+Kezdés: "Perma-ban a semmiért"
+Vég: "Perma-ban a semmiért"
+Kezdés: "Okos kliens, megjegyzett gyors gomb kiosztás"
+Vég: "Okos kliens, megjegyzett gyors gomb kiosztás"
+Kezdés: "event"
+Kezdés: "Hol tudom megnézni, hogy a meccsek után kapott 'kitüntetéseket' (amit a csapattársak adnak)?"
+Vég: "event"
+Vég: "Hol tudom megnézni, hogy a meccsek után kapott 'kitüntetéseket' (amit a csapattársak adnak)?"
+Kezdés: "Mit lehet,és mit nem?"
+Vég: "Mit lehet,és mit nem?"
+Kezdés: "Kitüntetés"
+Vég: "Kitüntetés"
+Kezdés: "Az alap támadások nem működnek játék közben."
+Vég: "Az alap támadások nem működnek játék közben."
+Kezdés: "Clash-teszt március 11től"
+Vég: "Clash-teszt március 11től"
+Kezdés: "A csapat túszul ejtése és \"new meta\" emberek"
+Vég: "A csapat túszul ejtése és \"new meta\" emberek"
+Kezdés: "Amikor a mission maga egy trap"
+Vég: "Amikor a mission maga egy trap"
+Kezdés: "8000 pontomra - Avagy Nemin búcsúlevele"
+Vég: "8000 pontomra - Avagy Nemin búcsúlevele"

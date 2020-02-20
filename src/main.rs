@@ -27,35 +27,59 @@ fn top_poszt(n: usize) {
     todo!();
 }
 
-fn get_user_thread_ids(nev: String) -> Vec<(String, String)> {
+fn collect_ids(json: serde_json::Value) -> Vec<(String, String)> {
     use regex::Regex;
     lazy_static! {
         static ref REG: Regex = Regex::new(r#"data-application-id="(.*?)" data-discussion-id="(.*?)""#).unwrap();
     }
 
-    let mut results = vec![];
-    let mut count = 0;
+    let mut results: Vec<(String, String)> = vec![];
 
-    loop {
-        let url = format!("/hu/player/EUNE/{}?content_type=discussion&json_wrap=1&num_loaded={}", nev, count);
-        let response = make_request(url);
+    for capture in REG.captures_iter(&json["results"].as_str().unwrap()) {
 
-        let json: serde_json::Value = serde_json::from_str(&response).unwrap();
-
-        if count < json["searchResultsCount"].as_i64().unwrap() {
-            println!("{} {}. oldal", nev, (count/50)+1);
-
-            for capture in REG.captures_iter(&json["results"].as_str().unwrap()) {
-                println!("{:?} | {:?}", &capture[1], &capture[2]);
-
-                results.push((String::from(&capture[1]), String::from(&capture[2])));
-            }
-
-            count += 50;
-        } else {
-            break;
+        let tuple: (String, String) = (String::from(&capture[1]), String::from(&capture[2]));
+        if !results.iter().any(|elem| elem.0 == tuple.0 && elem.1 == tuple.1) {
+            results.push(tuple);
         }
     }
+
+    results
+}
+
+fn get_user_thread_ids(nev: String) -> Vec<(String, String)> {
+
+
+    let initial_response = make_request(format!("/hu/player/EUNE/{}?json_wrap=1", nev));
+    let json: serde_json::Value = serde_json::from_str(&initial_response).unwrap();
+    let count = json["searchResultsCount"].as_i64().unwrap();
+
+    let mut results: Vec<(String, String)> = collect_ids(json);
+
+    let mut threads = Vec::new();
+
+    if count > 50 {
+        let rounds = (count/50)+1;
+
+        for round in 1..rounds {
+            let nev = nev.clone();
+            threads.push(std::thread::spawn(move || {
+                let url = format!("/hu/player/EUNE/{}?json_wrap=1&num_loaded={}", nev, 50 + round*50);
+                println!("{}", url);
+
+                let response = make_request(url);
+                let json: serde_json::Value = serde_json::from_str(&response).unwrap();
+
+                collect_ids(json)
+            }));
+        }
+    }
+
+    for t in threads {
+        let arr = t.join().unwrap();
+        results.extend(arr.into_iter());
+    }
+
+    println!("Finished collecting IDs.");
 
     results
 }
@@ -119,7 +143,7 @@ fn main() {
 
     println!("CHARON vagyok, az alvilág hajósa.\nVálaszd ki mit akarsz tenni:\n\n1 - Top posztok lementése.\n2 - Egy felhasználó posztjainak lementése.\n3 - Egy specifikus poszt letöltése.");
 
-    /*let mut input = String::new();
+    let mut input = String::new();
     std::io::stdin().read_line(&mut input).expect("Bad input!");
 
     if let Some('\n')=input.chars().next_back() {
@@ -129,16 +153,17 @@ fn main() {
         input.pop();
     }
 
-    println!("{}", input.len());*/
-
 //https://boards.eune.leagueoflegends.com/api/VFnq5EbB/discussions/YhLAqrRM
 
     let _ = std::fs::create_dir("posztok");
 
-    let username = "Nemin";
+    //let username = "Mind The Gap";
+
+    let username = &input;
 
     let ids = get_user_thread_ids(String::from(username));
     let _ = std::fs::create_dir(format!("./posztok/{}", username));
+
 
 
     let mut threads = Vec::new();
@@ -146,6 +171,7 @@ fn main() {
     for (i, (app_id, disc_id)) in ids.iter().enumerate() {
         let app_id = app_id.clone();
         let disc_id = disc_id.clone();
+        let username = username.clone();
 
         threads.push(std::thread::spawn(move || {
         let poszt = download_post(&app_id, &disc_id);
@@ -159,6 +185,14 @@ fn main() {
 
         println!("Vég: {}", poszt["discussion"]["title"]);
         }));
+
+        if threads.len() > 12 {
+            println!("Catching up...");
+            for t in threads {
+                t.join().unwrap();
+            }
+            threads = Vec::new();
+        }
     }
 
     //let mut posztok = Vec::new();
