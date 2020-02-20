@@ -5,6 +5,18 @@ use native_tls::TlsConnector;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
+use serde::{Deserialize, Serialize};
+#[derive(Deserialize, Serialize)]
+struct Thread {
+    poster: String,
+    date: String,
+    title: Option<String>,
+    up_votes: usize,
+    down_votes: usize,
+    body: String,
+    replies: Vec<Thread>,
+}
+
 lazy_static! {
     static ref CPU_COUNT: usize = num_cpus::get();
 }
@@ -46,7 +58,8 @@ fn top_poszt_ids(n: usize) -> Vec<(String, String)> {
 
     for i in 0..n {
 	threads.push(std::thread::spawn(move || {
-	    let url = format!("/api/q98U6Ykw/discussions?num_loaded={}", i*50);
+	    let url = format!("/api/q98U6Ykw/discussions?sort_type=best&num_loaded={}", i*50);
+	    println!("{}", url);
 	    let response = make_request(url);
 	    let json: serde_json::Value = serde_json::from_str(&response).unwrap();
 
@@ -59,6 +72,9 @@ fn top_poszt_ids(n: usize) -> Vec<(String, String)> {
     }
 
     sync_threads(&mut threads, &mut results);
+
+    println!("{}", results.len());
+    
     results
 }
 
@@ -71,14 +87,28 @@ fn collect_ids(json: serde_json::Value) -> Vec<(String, String)> {
 
     let mut results: Vec<(String, String)> = vec![];
 
-    for capture in REG.captures_iter(&json["results"].as_str().unwrap()) {
-        let tuple: (String, String) = (String::from(&capture[1]), String::from(&capture[2]));
-        if !results
-            .iter()
-            .any(|elem| elem.0 == tuple.0 && elem.1 == tuple.1)
-        {
-            results.push(tuple);
-        }
+    if let Some(json_results) = json["results"].as_str() {
+	for capture in REG.captures_iter(&json_results) {
+	    let tuple: (String, String) = (String::from(&capture[1]), String::from(&capture[2]));
+	    if !results
+		.iter()
+		.any(|elem| elem.0 == tuple.0 && elem.1 == tuple.1)
+	    {
+		results.push(tuple);
+	    }
+	}
+    }
+
+    if let Some(json_results) = json["discussions"].as_str() {
+	for capture in REG.captures_iter(&json_results) {
+	    let tuple: (String, String) = (String::from(&capture[1]), String::from(&capture[2]));
+	    if !results
+		.iter()
+		.any(|elem| elem.0 == tuple.0 && elem.1 == tuple.1)
+	    {
+		results.push(tuple);
+	    }
+	}
     }
 
     results
@@ -143,8 +173,8 @@ fn print_thread(root: &serde_json::Value, depth: usize) -> Thread {
                 .as_str()
                 .unwrap_or("[NEM SIKERÜLT KIOLVASNI]"),
         ),
-        up_votes: root["downVotes"].as_u64().unwrap().try_into().unwrap(),
-        down_votes: root["upVotes"].as_u64().unwrap().try_into().unwrap(),
+        up_votes: root["upVotes"].as_u64().unwrap().try_into().unwrap(),
+        down_votes: root["downVotes"].as_u64().unwrap().try_into().unwrap(),
         replies: Vec::new(),
         body: {
             if depth == 0 {
@@ -201,7 +231,7 @@ fn download_and_write_ids(folder_name: &String, ids: Vec<(String, String)>) {
         threads.push(std::thread::spawn(move || {
             let poszt = download_post(&app_id, &disc_id);
 
-            let mut file = std::fs::File::create(&format!("{}/{}/{}.txt", dir, folder_name, i)).unwrap();
+            let mut file = std::fs::File::create(&format!("{}/{}/{}.json", dir, folder_name, i)).unwrap();
             let thread = print_thread(&poszt["discussion"], 0);
 
             serde_json::to_writer(&mut file, &thread).unwrap();
@@ -224,17 +254,6 @@ fn download_and_write_ids(folder_name: &String, ids: Vec<(String, String)>) {
     }
 }
 
-use serde::{Deserialize, Serialize};
-#[derive(Deserialize, Serialize)]
-struct Thread {
-    poster: String,
-    date: String,
-    title: Option<String>,
-    up_votes: usize,
-    down_votes: usize,
-    body: String,
-    replies: Vec<Thread>,
-}
 
 fn main() {
     println!("CHARON vagyok, az alvilág hajósa.\nVálaszd ki mit akarsz tenni:\n\n1 - Top posztok lementése.\n2 - Egy felhasználó posztjainak lementése.\n3 - Egy specifikus poszt letöltése.");
@@ -249,7 +268,8 @@ fn main() {
         input.pop();
     }
 
-    let ids = get_user_thread_ids(&input);
+    let ids = top_poszt_ids(20);//get_user_thread_ids(&input);
 
-    download_and_write_ids(&input, ids);
+    //download_and_write_ids(&input, ids);
+    download_and_write_ids(&String::from("Top1000"), ids);
 }
