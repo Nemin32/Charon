@@ -3,9 +3,12 @@ extern crate lazy_static;
 
 use native_tls::TlsConnector;
 use std::collections::HashSet;
+use std::collections::HashMap;
 use std::hash::Hash;
 use std::io::{Read, Write};
 use std::net::TcpStream;
+
+use std::sync::{RwLock, Arc};
 
 use serde::{Deserialize, Serialize};
 #[derive(Deserialize, Serialize)]
@@ -120,7 +123,7 @@ fn collect_ids(json: serde_json::Value) -> HashSet<(String, String)> {
     results
 }
 
-fn get_user_thread_ids(nev: &String) -> HashSet<(String, String)> {
+fn get_user_ids(nev: &String) -> HashSet<(String, String)> {
     let initial_response = make_request(format!("/hu/player/EUNE/{}?json_wrap=1", nev));
 
     if let Ok(json) = serde_json::from_str(&initial_response) {
@@ -168,7 +171,7 @@ fn download_post(app_id: &String, disc_id: &String) -> serde_json::Value {
     serde_json::from_str(&make_request(url)).unwrap()
 }
 
-fn process_thread(root: &serde_json::Value, head: bool, names: &mut HashSet<String>) -> Thread {
+fn process_raw_thread(root: &serde_json::Value, head: bool, names: &mut HashSet<String>) -> Thread {
     use std::convert::TryInto;
 
     let mut thread = Thread {
@@ -221,13 +224,13 @@ fn process_thread(root: &serde_json::Value, head: bool, names: &mut HashSet<Stri
     if head {
         if let Some(comments) = root["comments"]["comments"].as_array() {
             for msg in comments {
-                thread.replies.push(process_thread(msg, false, names));
+                thread.replies.push(process_raw_thread(msg, false, names));
             }
         }
     } else {
         if let Some(comments) = root["replies"]["comments"].as_array() {
             for msg in comments {
-                thread.replies.push(process_thread(msg, false, names));
+                thread.replies.push(process_raw_thread(msg, false, names));
             }
         }
     }
@@ -257,7 +260,7 @@ fn write_file(thread: &Thread, nums: &mut std::collections::HashMap<String, usiz
     serde_json::to_writer(&mut file, &thread).unwrap();
 }
 
-fn download_ids(ids: &HashSet<(String, String)>) -> (Vec<Thread>, HashSet<String>) {
+fn process_threads(ids: &HashSet<(String, String)>) -> (Vec<Thread>, HashSet<String>) {
     let count = ids.len();
     let mut done = 0;
 
@@ -272,11 +275,11 @@ fn download_ids(ids: &HashSet<(String, String)>) -> (Vec<Thread>, HashSet<String
         threads.push(std::thread::spawn(move || {
             let mut names = HashSet::new();
 
-            (process_thread(&download_post(&app_id, &disc_id)["discussion"], true, &mut names), names)
+            (process_raw_thread(&download_post(&app_id, &disc_id)["discussion"], true, &mut names), names)
         }));
 
         if threads.len() >= *CPU_COUNT {
-            println!("Catching up...");
+            //println!("Catching up...");
             for t in threads.drain(..) {
 
                 if let Ok(retval) = t.join() {
@@ -289,7 +292,10 @@ fn download_ids(ids: &HashSet<(String, String)>) -> (Vec<Thread>, HashSet<String
                     println!("Eror unwrapping thread.");
                 }
                 done += 1;
-                println!("Done: {}/{}", done, count);
+
+                if done % 50 == 0 {
+                    println!("Done: {}/{}", done, count);
+                }
             }
         }
     }
@@ -307,16 +313,104 @@ fn download_ids(ids: &HashSet<(String, String)>) -> (Vec<Thread>, HashSet<String
         }
 
         done += 1;
-        println!("Done: {}/{}", done, count);
+        if done % 50 == 0 {
+            println!("Done: {}/{}", done, count);
+        }
     }
 
     (results, names)
 }
 
+fn add_names(names: HashSet<String>, name: &String, name_queue: Arc<RwLock<HashMap<String, bool>>>) {
+    if let Ok(mut lock) = name_queue.write() {
+        lock.insert(name.to_string(), true);
+
+        let mut names = names.clone();
+        names.retain(|elem| {lock.contains_key(elem) == false});
+
+        for name in names {
+            lock.insert(name, false);
+        }
+    } else {
+        println!("Couldn't lock RwLock.");
+    }
+}
+
+
+fn process_player(name: &String, name_queue: Arc<RwLock<HashMap<String, bool>>>) -> Vec<Thread> {
+    let ids = get_user_ids(name);
+    let (threads, names) = process_threads(&ids);
+
+    add_names(names, name, name_queue);
+
+    threads
+}
+
+
+
 fn main() {
     println!("CHARON vagyok, az alvilág hajósa.\nVálaszd ki mit akarsz tenni:\n\n1 - Top posztok lementése.\n2 - Egy felhasználó posztjainak lementése.\n3 - Egy specifikus poszt letöltése.");
 
-    let mut input = String::new();
+    let mut test: HashMap<String, bool> = HashMap::new();
+    test.insert(String::from("Nemin"), false);
+    /*test.insert(String::from("Zooty"), true);
+    test.insert(String::from("Mind The Gap"), true);
+    test.insert(String::from("Shikaichi"), true);
+    test.insert(String::from("Gamma Ray"), false);*/
+    //test.insert(String::from("AsD The Dreamer"), false);
+
+    let names = Arc::new(RwLock::new(test));
+
+    //process_player(&String::from("Gamma Ray"), names.clone());
+
+
+    let mut nums = std::collections::HashMap::new();
+    loop {
+        if names.read().unwrap().iter().all(|(_, val)| {
+            if *val {
+                true
+            } else {
+                false
+            }}) {break;}
+
+
+        let (done, all) = {
+            let mut done = 0;
+            let lock = names.read().unwrap();
+
+            for (_, val) in lock.iter() {
+                if *val {done+=1;}
+            }
+
+            (done, lock.len())
+        };
+
+        let name: Option<String> = {
+            let mut retval = None;
+            for (candidate, processed) in names.read().unwrap().iter() {
+                if !processed {
+                    retval = Some(candidate.clone());
+                    break;
+                }
+            }
+            retval
+        };
+
+
+        if let Some(name) = name {
+            let clone = names.clone();
+            println!("[{}/{}] Collecting {}'s Threads.", done, all, name);
+            let threads = process_player(&name, clone);
+
+            for post in threads.iter() {
+                write_file(post, &mut nums);
+            }
+        }
+
+        //std::thread::sleep(std::time::Duration::from_millis(100));
+    }
+
+    /*let mut input = String::new();
     std::io::stdin().read_line(&mut input).expect("Bad input!");
 
     if let Some('\n') = input.chars().next_back() {
@@ -366,5 +460,5 @@ fn main() {
     extra_threads.0.sort_by(|a, b| b.up_votes.cmp(&a.up_votes));
     for post in extra_threads.0.iter() {
         write_file(post, &mut nums);
-    }
+    }*/
 }
