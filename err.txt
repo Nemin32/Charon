@@ -1,0 +1,16 @@
+   Compiling Charon v0.1.0 (/home/nemin/Charon)
+warning: function is never used: `top_poszt_ids`
+  --> src/main.rs:69:4
+   |
+69 | fn top_poszt_ids(n: usize) -> HashSet<(String, String)> {
+   |    ^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` on by default
+
+warning: crate `Charon` should have a snake case name
+  |
+  = note: `#[warn(non_snake_case)]` on by default
+  = help: convert the identifier to snake case: `charon`
+
+    Finished release [optimized] target(s) in 1.20s
+     Running `target/release/Charon`
