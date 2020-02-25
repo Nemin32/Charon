@@ -257,11 +257,11 @@ fn prune_ids(ids: &mut HashSet<(String, String)>, processed_ids: &mut HashSet<(S
     ids.retain(|elem| processed_ids.insert(elem.clone()));
 }
 
-async fn process_profile(name: String,
+async fn process_profile(name: &String,
 			 name_queue: &mut HashMap<String, bool>,
 			 processed_ids: &mut HashSet<(String, String)>) -> Result<Vec<Thread>> {
     println!("Processing {}", name);
-    let mut ids = get_user_ids(&name).await?;
+    let mut ids = get_user_ids(name).await?;
     prune_ids(&mut ids, processed_ids);
     let (threads, names) = download_threads(&ids).await?;
     add_names(names, &name, name_queue);
@@ -297,13 +297,35 @@ async fn main() -> Result<()> {
     let mut ids: HashSet<(String, String)> = HashSet::new();
     names.insert(String::from("Nemin"), false);
     
-    let name = "Gamma Ray".to_string();
-    let threads = process_profile(name, &mut names, &mut ids).await?;
-
+    let mut thread_count: usize = 0;
     let mut nums = HashMap::new();
-    for t in &threads {
-	write_file(t, &mut nums);
+
+    loop {
+	if names.iter().all(|(_, val)| {*val}) {break;}
+
+	let all = names.len();
+	let mut done: usize = 0;
+	for (_, val) in names.iter() {
+	    if *val {done+=1;}
+	}
+
+	for (candidate, processed) in names.clone().iter() {
+	    if !processed {
+		let name = candidate;
+		print!("[{}/{} ({}%) ({})] {} ",
+		       done, all, (((done as f64)/(all as f64))*100.0) as usize, thread_count, name);
+
+		let threads = process_profile(&name, &mut names, &mut ids).await?;
+		if threads.len() > 0 {
+		    for post in threads.iter() {
+			write_file(post, &mut nums);
+			thread_count += 1;
+		    }
+		}
+	    }
+	}
     }
-    
+
+    println!("Final thread-count: {} threads.", thread_count);
     Ok(())
 }
