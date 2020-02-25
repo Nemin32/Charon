@@ -264,6 +264,8 @@ fn process_threads(ids: &HashSet<(String, String)>) -> (Vec<Thread>, HashSet<Str
     let count = ids.len();
     let mut done = 0;
 
+    println!("[{} threads]", count);
+    
     let mut threads = Vec::new();
     let mut results = Vec::new();
     let mut names = HashSet::new();
@@ -293,7 +295,7 @@ fn process_threads(ids: &HashSet<(String, String)>) -> (Vec<Thread>, HashSet<Str
                 }
                 done += 1;
 
-                if done % 50 == 0 {
+                if done % 100 == 0 {
                     println!("Done: {}/{}", done, count);
                 }
             }
@@ -336,9 +338,15 @@ fn add_names(names: HashSet<String>, name: &String, name_queue: Arc<RwLock<HashM
     }
 }
 
+fn prune_ids(ids: &mut HashSet<(String, String)>, processed_ids: Arc<RwLock<HashSet<(String, String)>>>) {
+    if let Ok(mut lock) = processed_ids.write() {
+	ids.retain(|elem| lock.insert(elem.clone()));
+    }
+}
 
-fn process_player(name: &String, name_queue: Arc<RwLock<HashMap<String, bool>>>) -> Vec<Thread> {
-    let ids = get_user_ids(name);
+fn process_player(name: &String, name_queue: Arc<RwLock<HashMap<String, bool>>>, processed_ids: Arc<RwLock<HashSet<(String, String)>>>) -> Vec<Thread> {
+    let mut ids = get_user_ids(name);
+    prune_ids(&mut ids, processed_ids);
     let (threads, names) = process_threads(&ids);
 
     add_names(names, name, name_queue);
@@ -349,30 +357,29 @@ fn process_player(name: &String, name_queue: Arc<RwLock<HashMap<String, bool>>>)
 
 
 fn main() {
-    println!("CHARON vagyok, az alvilág hajósa.\nVálaszd ki mit akarsz tenni:\n\n1 - Top posztok lementése.\n2 - Egy felhasználó posztjainak lementése.\n3 - Egy specifikus poszt letöltése.");
+    println!("Ez itt STYX, a fórum lementő program.");
 
-    let mut test: HashMap<String, bool> = HashMap::new();
-    test.insert(String::from("Nemin"), false);
-    /*test.insert(String::from("Zooty"), true);
-    test.insert(String::from("Mind The Gap"), true);
-    test.insert(String::from("Shikaichi"), true);
-    test.insert(String::from("Gamma Ray"), false);*/
-    //test.insert(String::from("AsD The Dreamer"), false);
+    let mut name_hash: HashMap<String, bool> = HashMap::new();
+    let id_hash: HashSet<(String, String)> = HashSet::new();
+    name_hash.insert(String::from("Nemin"), false);
+    /*name_hash.insert(String::from("Zooty"), true);
+    name_hash.insert(String::from("Mind The Gap"), true);
+    name_hash.insert(String::from("Shikaichi"), true);
+    name_hash.insert(String::from("Gamma Ray"), false);*/
+    //name_hash.insert(String::from("AsD The Dreamer"), false);
 
-    let names = Arc::new(RwLock::new(test));
+    let names = Arc::new(RwLock::new(name_hash));
+    let ids = Arc::new(RwLock::new(id_hash));
 
     //process_player(&String::from("Gamma Ray"), names.clone());
 
 
     let mut nums = std::collections::HashMap::new();
-    loop {
-        if names.read().unwrap().iter().all(|(_, val)| {
-            if *val {
-                true
-            } else {
-                false
-            }}) {break;}
 
+    let mut thread_count = 0;
+    
+    loop {
+        if names.read().unwrap().iter().all(|(_, val)| {*val}) {break;}
 
         let (done, all) = {
             let mut done = 0;
@@ -398,17 +405,23 @@ fn main() {
 
 
         if let Some(name) = name {
-            let clone = names.clone();
-            println!("[{}/{}] Collecting {}'s Threads.", done, all, name);
-            let threads = process_player(&name, clone);
+            let names = names.clone();
+	    let ids = ids.clone();
+            print!("[{}/{} ({}%)] {} ", done, all, (((done as f64)/(all as f64))*100.0) as usize, name);
+            let threads = process_player(&name, names, ids);
 
             for post in threads.iter() {
                 write_file(post, &mut nums);
-            }
-        }
 
-        //std::thread::sleep(std::time::Duration::from_millis(100));
+		thread_count += 1;
+		if thread_count % 1000 == 0 {
+		    println!("Currently written out over {} threads.", thread_count);
+		}
+	    }
+        }
     }
+
+    println!("Final thread-count: {} threads.", thread_count);
 
     /*let mut input = String::new();
     std::io::stdin().read_line(&mut input).expect("Bad input!");
