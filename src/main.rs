@@ -41,16 +41,17 @@ lazy_static! {
 
 fn make_connection() -> native_tls::TlsStream<TcpStream> {
     let connector = TlsConnector::new().unwrap();
-    let _stream = TcpStream::connect("boards.eune.leagueoflegends.com:443").unwrap();
-    let mut _stream = connector
-        .connect("boards.eune.leagueoflegends.com", _stream)
+    let stream = TcpStream::connect("boards.eune.leagueoflegends.com:443").unwrap();
+    let stream = connector
+        .connect("boards.eune.leagueoflegends.com", stream)
         .unwrap();
 
-    _stream
+    stream
 }
 
-fn make_request(stream: &mut native_tls::TlsStream<TcpStream>, request: String) -> String {
+fn make_request(request: String) -> String {
     let url = format!("GET {} HTTP/1.0\r\nUser-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r\nHost: boards.eune.leagueoflegends.com\r\n\r\n", request);
+    let mut stream = make_connection();
 
     stream.write(url.as_bytes()).unwrap();
     let mut resp = vec![];
@@ -107,8 +108,7 @@ fn collect_ids(json: serde_json::Value) -> HashSet<(String, String)> {
 }
 
 fn get_user_ids(nev: &String) -> HashSet<(String, String)> {
-    let mut conn = make_connection();
-    let initial_response = make_request(conn.try_clone(), format!("/hu/player/EUNE/{}?json_wrap=1", nev));
+    let initial_response = make_request(format!("/hu/player/EUNE/{}?json_wrap=1", nev));
 
     if let Ok(json) = serde_json::from_str(&initial_response) {
         let json: serde_json::Value = json;
@@ -293,13 +293,9 @@ fn process_threads(ids: &HashSet<(String, String)>) -> (Vec<Thread>, HashSet<Str
     let mut results = Vec::new();
     let mut names = HashSet::new();
 
-    let mut conn = make_connection();
-
     for (app_id, disc_id) in ids {
         let app_id = app_id.clone();
         let disc_id = disc_id.clone();
-
-        let mut conn = conn.copy();
 
         threads.push(std::thread::spawn(move || {
             let mut names = HashSet::new();
@@ -359,11 +355,9 @@ fn prune_ids(ids: &mut HashSet<(String, String)>, processed_ids: &mut HashSet<(S
 }
 
 fn process_player(name: &String, name_queue: &mut HashMap<String, bool>, processed_ids: &mut HashSet<(String, String)>) -> Vec<Thread> {
-    let mut conn = make_connection();
-
-    let mut ids = get_user_ids(&conn, name);
+    let mut ids = get_user_ids(name);
     prune_ids(&mut ids, processed_ids);
-    let (threads, names) = process_threads(&conn, &ids);
+    let (threads, names) = process_threads(&ids);
 
     add_names(names, name, name_queue);
 
