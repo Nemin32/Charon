@@ -374,6 +374,11 @@ fn process_player(name: &String, name_queue: &mut HashMap<String, bool>, process
 fn main() {
     println!("This is CHARON, the Boards-backuper.");
 
+    let mut names: HashMap<String, bool> = HashMap::new();
+    let mut ids: HashSet<(String, String)> = HashSet::new();
+    let mut nums = std::collections::HashMap::new();
+    let mut thread_count = 0;
+
     unsafe {
         println!("Which region do you want to save? [EUNE]");
         let line = {
@@ -404,19 +409,29 @@ fn main() {
         }
     }
 
-    let mut names: HashMap<String, bool> = HashMap::new();
-    let mut ids: HashSet<(String, String)> = HashSet::new();
-    names.insert(String::from("Nemin"), false);
+    println!("Enter a name which will be used to start the process from (Be mindful of capitalization!): ");
+    let mut line = {
+        let mut line = String::new();
+        std::io::stdin().read_line(&mut line).unwrap();
+        line.trim_end().to_string()
+    };
 
-    let mut nums = std::collections::HashMap::new();
-    let mut thread_count = 0;
+    while line == "" {
+        println!("You must enter a name.");
+        line = {
+            let mut line = String::new();
+            std::io::stdin().read_line(&mut line).unwrap();
+            line.trim_end().to_string()
+        };
+    }
+
+    names.insert(line.clone(), false);
 
     let dir = unsafe { format!("./backup_{}_{}", REGION, LANGUAGE) };
     let _ = std::fs::create_dir(dir.clone());
 
     unsafe {
-    println!("{}, {}, {}, {}", REGION, BASEURL, LANGUAGE, dir);
-    panic!();
+        println!("You are now downloading {}'s posts from the {} region and {} language into {}.", line, REGION, LANGUAGE, dir);
     }
 
     loop {
