@@ -372,7 +372,7 @@ fn process_player(name: &String, name_queue: &mut HashMap<String, bool>, process
 }
 
 fn main() {
-    println!("This is CHARON, the Boards-backuper.");
+    println!("This is CHARON, the Boards-backupper.");
 
     let mut names: HashMap<String, bool> = HashMap::new();
     let mut ids: HashSet<(String, String)> = HashSet::new();
