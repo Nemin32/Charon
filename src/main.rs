@@ -346,7 +346,7 @@ fn add_names(names: HashSet<String>, name: &String, name_queue: &mut HashMap<Str
     names.retain(|elem| {name_queue.contains_key(elem) == false});
 
     for name in names {
-	name_queue.insert(name, false);
+        name_queue.insert(name, false);
     }
 }
 
@@ -371,21 +371,11 @@ fn main() {
     let mut ids: HashSet<(String, String)> = HashSet::new();
     names.insert(String::from("Nemin"), false);
 
-    //names.insert(String::from("Support LeBlanc"), false);
-    /*name_hash.insert(String::from("Zooty"), true);
-    name_hash.insert(String::from("Mind The Gap"), true);
-    name_hash.insert(String::from("Shikaichi"), true);
-    name_hash.insert(String::from("Gamma Ray"), false);*/
-    //name_hash.insert(String::from("AsD The Dreamer"), false);
-
-    //process_player(&String::from("Gamma Ray"), names.clone());
-
-
     let mut nums = std::collections::HashMap::new();
     let mut thread_count = 0;
 
     loop {
-	if names.iter().all(|(_, val)| {*val}) {break;}
+        if names.iter().all(|(_, val)| {*val}) {break;}
 
         let (done, all) = {
             let mut done = 0;
