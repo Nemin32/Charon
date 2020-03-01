@@ -10,6 +10,13 @@ use std::net::TcpStream;
 
 use serde::{Deserialize, Serialize};
 
+// Will contain something like "boards.eune.leagueoflegends.com".
+static mut BASEURL: String = String::new();
+// Will contain something like "hu".
+static mut LANGUAGE: String = String::new();
+// Will contain something like "EUNE".
+static mut REGION: String = String::new();
+
 #[derive(Deserialize, Serialize)]
 struct Link {
     description: Option<String>,
@@ -41,16 +48,18 @@ lazy_static! {
 
 fn make_connection() -> native_tls::TlsStream<TcpStream> {
     let connector = TlsConnector::new().unwrap();
-    let stream = TcpStream::connect("boards.eune.leagueoflegends.com:443").unwrap();
-    let stream = connector
-        .connect("boards.eune.leagueoflegends.com", stream)
-        .unwrap();
+    let stream = unsafe { TcpStream::connect(format!("{}:443", BASEURL)).unwrap() };
+    let stream = unsafe {
+        connector
+            .connect(&BASEURL, stream)
+            .unwrap()
+    };
 
     stream
 }
 
 fn make_request(request: String) -> String {
-    let url = format!("GET {} HTTP/1.0\r\nUser-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r\nHost: boards.eune.leagueoflegends.com\r\n\r\n", request);
+    let url = unsafe { format!("GET {} HTTP/1.0\r\nUser-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r\nHost: {}\r\n\r\n", request, BASEURL) };
     let mut stream = make_connection();
 
     stream.write(url.as_bytes()).unwrap();
@@ -71,7 +80,6 @@ fn sync_threads<T>(threads: &mut Vec<std::thread::JoinHandle<HashSet<T>>>, resul
     where
     T: Eq + Hash,
 {
-    //println!("Catching up...");
     for t in threads.drain(..) {
         let arr = t.join().unwrap();
 
@@ -107,8 +115,8 @@ fn collect_ids(json: serde_json::Value) -> HashSet<(String, String)> {
     results
 }
 
-fn get_user_ids(nev: &String) -> HashSet<(String, String)> {
-    let initial_response = make_request(format!("/hu/player/EUNE/{}?json_wrap=1", nev));
+fn get_user_ids(name: &String) -> HashSet<(String, String)> {
+    let initial_response = unsafe { make_request(format!("/{}/player/{}/{}?json_wrap=1", LANGUAGE, REGION, name)) };
 
     if let Ok(json) = serde_json::from_str(&initial_response) {
         let json: serde_json::Value = json;
@@ -121,14 +129,15 @@ fn get_user_ids(nev: &String) -> HashSet<(String, String)> {
             let rounds = (count / 50) + 1;
 
             for round in 1..rounds {
-                let nev = nev.clone();
+                let name = name.clone();
                 threads.push(std::thread::spawn(move || {
-                    let url = format!(
-                        "/hu/player/EUNE/{}?json_wrap=1&num_loaded={}",
-                        nev,
-                        50 + round * 50
-                        );
-                    //println!("Page {}/{}", round, rounds);
+                    let url = unsafe {
+                        format!( "/{}/player/{}/{}?json_wrap=1&num_loaded={}",
+                                 LANGUAGE,
+                                 REGION,
+                                 name,
+                                 50 + round * 50)
+                    };
 
                     let response = make_request(url);
                     let json: serde_json::Value = serde_json::from_str(&response).unwrap();
@@ -145,7 +154,7 @@ fn get_user_ids(nev: &String) -> HashSet<(String, String)> {
         sync_threads(&mut threads, &mut results);
         results
     } else {
-        print!(" ERROR! Couldn't process {}. ", nev);
+        print!(" ERROR! Couldn't process {}. ", name);
         HashSet::new()
     }
 }
@@ -257,9 +266,7 @@ fn process_raw_thread(root: &serde_json::Value, head: bool, names: &mut HashSet<
     thread
 }
 
-fn write_file(thread: &Thread, nums: &mut std::collections::HashMap<String, usize>) {
-    let dir = "../posztok";
-    let _ = std::fs::create_dir(dir);
+fn write_file(dir: &String, thread: &Thread, nums: &mut std::collections::HashMap<String, usize>) {
     let _ = std::fs::create_dir(format!("{}/{}", dir, thread.poster));
 
     let mut file = {
@@ -365,7 +372,37 @@ fn process_player(name: &String, name_queue: &mut HashMap<String, bool>, process
 }
 
 fn main() {
-    println!("Ez itt STYX, a fórum lementő program.");
+    println!("This is CHARON, the Boards-backuper.");
+
+    unsafe {
+        println!("Which region do you want to save? [EUNE]");
+        let line = {
+            let mut line = String::new();
+            std::io::stdin().read_line(&mut line).unwrap();
+            line.trim_end().to_string()
+        };
+
+        if line == "" {
+            REGION = String::from("EUNE");
+            BASEURL = String::from("boards.eune.leagueoflegends.com");
+        } else {
+            REGION = line.clone().to_uppercase();
+            BASEURL = format!("boards.{}.leagueoflegends.com", line.clone().to_lowercase());
+        }
+
+        println!("And which language? [en]");
+        let line = {
+            let mut line = String::new();
+            std::io::stdin().read_line(&mut line).unwrap();
+            line.trim_end().to_string()
+        };
+
+        if line == "" {
+            LANGUAGE = String::from("en");
+        } else {
+            LANGUAGE = line.clone().to_lowercase();
+        }
+    }
 
     let mut names: HashMap<String, bool> = HashMap::new();
     let mut ids: HashSet<(String, String)> = HashSet::new();
@@ -373,6 +410,14 @@ fn main() {
 
     let mut nums = std::collections::HashMap::new();
     let mut thread_count = 0;
+
+    let dir = unsafe { format!("./backup_{}_{}", REGION, LANGUAGE) };
+    let _ = std::fs::create_dir(dir.clone());
+
+    unsafe {
+    println!("{}, {}, {}, {}", REGION, BASEURL, LANGUAGE, dir);
+    panic!();
+    }
 
     loop {
         if names.iter().all(|(_, val)| {*val}) {break;}
@@ -405,7 +450,7 @@ fn main() {
 
             if threads.len() > 0 {
                 for post in threads.iter() {
-                    write_file(post, &mut nums);
+                    write_file(&dir, post, &mut nums);
                     thread_count += 1;
                 }
             }
