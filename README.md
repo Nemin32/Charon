@@ -43,10 +43,15 @@ take much to modify it to be able to use any dataset.
 However, either way, once we have the content saved up, we can take as much
 time as wish to release it again, the first priority should be to back it up.
 
-## How do I build the project?
+## How do I run the project?
 
-Either you don't and just download the newest release from the Releases tab
-above or you need to install [Rust](https://www.rust-lang.org/), navigate into
+### Download
+
+Just download the newest binary from the [Releases Tab](https://github.com/Nemin32/Charon/releases) and run it.
+
+### Run from source
+
+You need to install [Rust](https://www.rust-lang.org/), navigate into
 the folder where you downloaded the code and issue
 
 `cargo run --release`
@@ -57,11 +62,6 @@ which will download the dependencies and run the program.
 
 While the program can handle the EUNE/HU region well, I haven't tested it
 anywhere else, so if you can just do that, that's already very helpful.
-
-I sadly don't own a Windows PC, so I wasn't able to turn the application into
-an exe. So if you happen to have Rust installed on a Win PC and would be
-willing to package it up and make a pull request, I'd happily add it to the
-Releases page.
 
 Also, in the unlikely case you need to restart the application, it sadly has no
 idea how much has it already processed, so it'll start again from scratch. This
