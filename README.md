@@ -7,7 +7,7 @@ shutting down in a few days and Riot is planning to wipe the archives. To at
 least preserve *some* of this great (and terrible) site, I wrote this program
 which can be used to basically save everything from the forum.
 
-## But how does it work?
+## How does it work?
 
 When you start up CHARON, it will ask you a few simple questions to know which
 version of the Boards you wish to save. Then it will create a folder where the
@@ -17,7 +17,7 @@ Meanwhile, it also collects every single name it encounters. Then it takes one
 of those names and repeats this whole process. As you can probably imagine,
 this will eventually exhaust every single topic and comment.
 
-## But how quick is it?
+## How quick is it?
 
 Both very quick and quite slow at the same time. The program itself uses
 optimized libraries and Rust's already excellent speed. However, since you're
@@ -42,6 +42,16 @@ take much to modify it to be able to use any dataset.
 
 However, either way, once we have the content saved up, we can take as much
 time as wish to release it again, the first priority should be to back it up.
+
+## How do I build the project?
+
+Either you don't and just download the newest release from the Releases tab
+above or you need to install [Rust](https://www.rust-lang.org/), navigate into
+the folder where you downloaded the code and issue
+
+`cargo run --release`
+
+which will download the dependencies and run the program.
 
 ## How can you help?
 

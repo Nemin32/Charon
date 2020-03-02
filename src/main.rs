@@ -266,21 +266,20 @@ fn process_raw_thread(root: &serde_json::Value, head: bool, names: &mut HashSet<
     thread
 }
 
-fn write_file(dir: &String, thread: &Thread, nums: &mut std::collections::HashMap<String, usize>) {
-    let _ = std::fs::create_dir(format!("{}/{}", dir, thread.poster));
+fn write_file(dir: &std::path::Path, thread: &Thread, nums: &mut std::collections::HashMap<String, usize>) {
+    let path = dir.join(format!("{}/", thread.poster));
+
+    let _ = std::fs::create_dir(&path);
 
     let mut file = {
-        if let Some(i) = nums.remove(&thread.poster) {
-            let file =
-                std::fs::File::create(&format!("{}/{}/{}.json", dir, thread.poster, i)).unwrap();
-            nums.insert(thread.poster.clone(), i + 1);
-            file
-        } else {
-            let file =
-                std::fs::File::create(&format!("{}/{}/{}.json", dir, thread.poster, 0)).unwrap();
-            nums.insert(thread.poster.clone(), 1);
-            file
-        }
+        let i = nums.get(&thread.poster).unwrap_or(&0).clone();
+
+        let mut file_path = path.clone();
+        file_path.push(format!("{}.json", i));
+
+        let file = std::fs::File::create(file_path).unwrap();
+        nums.insert(thread.poster.clone(), i + 1);
+        file
     };
 
     serde_json::to_writer(&mut file, &thread).unwrap();
@@ -427,11 +426,12 @@ fn main() {
 
     names.insert(line.clone(), false);
 
-    let dir = unsafe { format!("./backup_{}_{}", REGION, LANGUAGE) };
+    let dirname = unsafe { format!("./backup_{}_{}", REGION, LANGUAGE) };
+    let dir = std::path::Path::new(&dirname);
     let _ = std::fs::create_dir(dir.clone());
 
     unsafe {
-        println!("You are now downloading {}'s posts from the {} region and {} language into {}.", line, REGION, LANGUAGE, dir);
+        println!("You are now downloading {}'s posts from the {} region and {} language into {}.", line, REGION, LANGUAGE, dir.display());
     }
 
     loop {
