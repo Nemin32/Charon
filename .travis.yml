@@ -3,9 +3,12 @@ cache: cargo
 os:
  - windows
 
+script:
+  - cargo build --release --all
+
 deploy:
   skip_cleanup: true
   provider: releases
   token: $GH_TOKEN
-  file: ".\\target\\debug\\charon.exe"
+  file: "target\\release\\charon.exe"
   draft: true
