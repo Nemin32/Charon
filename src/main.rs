@@ -268,12 +268,17 @@ fn add_names(mut names: HashSet<String>, name: &String, name_queue: &mut HashMap
 fn write_names(dir: &std::path::Path, name_queue: &HashMap<String, bool>) {
     use std::io::Write;
 
-    let dir = dir.join("namelist.txt");
-    let mut file = std::fs::File::create(dir).unwrap();
+    let name1 = dir.clone().join("unprocessed.txt");
+    let name2 = dir.clone().join("processed.txt");
+
+    let mut unp = std::fs::File::create(name1).unwrap();
+    let mut p = std::fs::File::create(name2).unwrap();
 
     for (name, processed) in name_queue {
         if !processed {
-            write!(file, "{}\n", name);
+            write!(unp, "{}\n", name);
+        } else {
+            write!(p, "{}\n", name);
         }
     }
 }
@@ -293,10 +298,42 @@ fn process_player(name: &String, name_queue: &mut HashMap<String, bool>, process
     threads
 }
 
+fn load_names(dir: &std::path::Path) -> HashMap<String, bool> {
+    let mut names = HashMap::new();
+
+    let unp = dir.clone().join("unprocessed.txt");
+    let p = dir.clone().join("processed.txt");
+
+    if let Ok(name_string) = std::fs::read_to_string(&unp) {
+        for line in name_string.lines() {
+            names.insert(line.to_string(), false);
+        }
+    }
+
+    if let Ok(name_string) = std::fs::read_to_string(&p) {
+        for line in name_string.lines() {
+            names.insert(line.to_string(), true);
+        }
+    }
+
+    /*if let Ok(entries) = std::fs::read_dir(&dir) {
+        for folder in entries {
+            if let Ok(folder) = folder {
+                let name = folder.file_name().into_string();
+
+                if let Ok(name) = name {
+                    names.insert(name, true);
+                }
+            }
+        }
+    }*/
+
+    names
+}
+
 fn main() {
     println!("This is CHARON, the Boards-backupper.");
 
-    let mut names: HashMap<String, bool> = HashMap::new();
     let mut processed_ids: HashSet<(String, String)> = HashSet::new();
     let mut nums = std::collections::HashMap::new();
     let mut thread_count = 0;
@@ -336,12 +373,21 @@ fn main() {
     let dir = std::path::Path::new(&dirname);
     let _ = std::fs::create_dir(dir.clone());
 
+    let mut names: HashMap<String, bool> = load_names(&dir);
+
+    println!("{}", names.len());
+
     let mut red_names = HashSet::new();
     get_redtracker_profiles("", &mut red_names);
+
+    red_names.retain(|elem| !names.get(elem).unwrap_or(&false));
 
     for name in &red_names {
         print!("{} ", name);
         let threads = process_redtracker_profile(name, &mut names, &mut processed_ids);
+
+        println!("{}", names.len());
+
         for post in threads.iter() {
             write_file(&dir, post, &mut nums);
             thread_count += 1;
