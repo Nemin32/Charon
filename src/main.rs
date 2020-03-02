@@ -34,7 +34,7 @@ fn sync_threads<T>(threads: &mut Vec<std::thread::JoinHandle<HashSet<T>>>, resul
 
 
 fn get_user_ids(name: String) -> HashSet<(String, String)> {
-    let initial_response = unsafe { make_request(name.clone()) };
+    let initial_response = make_request(name.clone());
 
     if let Ok(json) = serde_json::from_str(&initial_response) {
         let json: serde_json::Value = json;
@@ -49,11 +49,9 @@ fn get_user_ids(name: String) -> HashSet<(String, String)> {
             for round in 1..rounds {
                 let name = name.clone();
                 threads.push(std::thread::spawn(move || {
-                    let url = unsafe {
-                        format!( "{}&num_loaded={}",
-                                 name,
-                                 50 + round * 50)
-                    };
+                    let url = format!("{}&num_loaded={}",
+                                      name,
+                                      50 + round * 50);
 
                     let response = make_request(url);
                     let json: serde_json::Value = serde_json::from_str(&response).unwrap();
@@ -276,9 +274,9 @@ fn write_names(dir: &std::path::Path, name_queue: &HashMap<String, bool>) {
 
     for (name, processed) in name_queue {
         if !processed {
-            write!(unp, "{}\n", name);
+            let _ = write!(unp, "{}\n", name);
         } else {
-            write!(p, "{}\n", name);
+            let _ = write!(p, "{}\n", name);
         }
     }
 }
@@ -331,12 +329,57 @@ fn load_names(dir: &std::path::Path) -> HashMap<String, bool> {
     names
 }
 
+fn handle_names(dir: &std::path::Path, nums: &mut HashMap<String, usize>, names: &mut HashMap<String, bool>, processed_ids: &mut HashSet<(String, String)>) {
+    let mut thread_count = 0;
+
+    loop {
+        if names.iter().all(|(_, val)| {*val}) {break;}
+
+        let (done, all) = {
+            let mut done = 0;
+
+            for (_, val) in names.iter() {
+                if *val {done+=1;}
+            }
+
+            (done, names.len())
+        };
+
+        let name: Option<String> = {
+            let mut retval = None;
+            for (candidate, processed) in names.iter() {
+                if !processed {
+                    retval = Some(candidate.clone());
+                    break;
+                }
+            }
+            retval
+        };
+
+
+        if let Some(name) = name {
+            print!("[{}/{} ({}%) ({})] {} ", done, all, (((done as f64)/(all as f64))*100.0) as usize, thread_count, name);
+            let threads = process_player(&name, names, processed_ids);
+
+            if threads.len() > 0 {
+                for post in threads.iter() {
+                    write_file(&dir, post, nums);
+                    thread_count += 1;
+                }
+            }
+
+            write_names(&dir, &names);
+        }
+    }
+
+    println!("Final thread-count: {} threads.", thread_count);
+}
+
 fn main() {
     println!("This is CHARON, the Boards-backupper.");
 
     let mut processed_ids: HashSet<(String, String)> = HashSet::new();
     let mut nums = std::collections::HashMap::new();
-    let mut thread_count = 0;
 
 
     unsafe {
@@ -375,40 +418,17 @@ fn main() {
 
     let mut names: HashMap<String, bool> = load_names(&dir);
 
-    println!("{}", names.len());
+    println!("Loaded {} names.", names.len());
 
-    let mut red_names = HashSet::new();
-    get_redtracker_profiles("", &mut red_names);
-
-    red_names.retain(|elem| !names.get(elem).unwrap_or(&false));
-
-    for name in &red_names {
-        print!("{} ", name);
-        let threads = process_redtracker_profile(name, &mut names, &mut processed_ids);
-
-        println!("{}", names.len());
-
-        for post in threads.iter() {
-            write_file(&dir, post, &mut nums);
-            thread_count += 1;
-        }
-
-        write_names(&dir, &names);
-    }
-
-    println!("Final thread-count: {} threads.", thread_count);
-
-    panic!();
-
-    println!("Enter a name which will be used to start the process from (Be mindful of capitalization!): ");
+    println!("Do you want to download the Red Tracker or do a forum crawl? [red/crawl]");
     let mut line = {
         let mut line = String::new();
         std::io::stdin().read_line(&mut line).unwrap();
         line.trim_end().to_string()
     };
 
-    while line == "" {
-        println!("You must enter a name.");
+    while line != "red" && line != "crawl" {
+        println!("You must enter either 'red' or 'crawl'.");
         line = {
             let mut line = String::new();
             std::io::stdin().read_line(&mut line).unwrap();
@@ -416,50 +436,33 @@ fn main() {
         };
     }
 
-    names.insert(line.clone(), false);
+    if line == "red" {
+        handle_reds(&dir, &mut nums, &mut names, &mut processed_ids);
+    } else {
+        if names.len() == 0 {
+            println!("Enter a name which will be used to start the process from (Be mindful of capitalization!): ");
+            let mut line = {
+                let mut line = String::new();
+                std::io::stdin().read_line(&mut line).unwrap();
+                line.trim_end().to_string()
+            };
 
-
-    unsafe {
-        println!("You are now downloading {}'s posts from the {} region and {} language into {}.", line, REGION, LANGUAGE, dir.display());
-    }
-
-    loop {
-        if names.iter().all(|(_, val)| {*val}) {break;}
-
-        let (done, all) = {
-            let mut done = 0;
-
-            for (_, val) in names.iter() {
-                if *val {done+=1;}
+            while line == "" {
+                println!("You must enter a name.");
+                line = {
+                    let mut line = String::new();
+                    std::io::stdin().read_line(&mut line).unwrap();
+                    line.trim_end().to_string()
+                };
             }
 
-            (done, names.len())
-        };
+            names.insert(line.clone(), false);
 
-        let name: Option<String> = {
-            let mut retval = None;
-            for (candidate, processed) in names.iter() {
-                if !processed {
-                    retval = Some(candidate.clone());
-                    break;
-                }
-            }
-            retval
-        };
-
-
-        if let Some(name) = name {
-            print!("[{}/{} ({}%) ({})] {} ", done, all, (((done as f64)/(all as f64))*100.0) as usize, thread_count, name);
-            let threads = process_player(&name, &mut names, &mut processed_ids);
-
-            if threads.len() > 0 {
-                for post in threads.iter() {
-                    write_file(&dir, post, &mut nums);
-                    thread_count += 1;
-                }
+            unsafe {
+                println!("You are now downloading {}'s posts from the {} region and {} language into {}.", line, REGION, LANGUAGE, dir.display());
             }
         }
-    }
 
-    println!("Final thread-count: {} threads.", thread_count);
+        handle_names(&dir, &mut nums, &mut names, &mut processed_ids);
+    }
 }

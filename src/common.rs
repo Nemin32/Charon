@@ -14,9 +14,16 @@ fn make_connection() -> native_tls::TlsStream<TcpStream> {
     let connector = TlsConnector::new().unwrap();
     let stream = unsafe { TcpStream::connect(format!("{}:443", BASEURL)).unwrap() };
     let stream = unsafe {
-        connector
-            .connect(&BASEURL, stream)
-            .unwrap()
+        match connector.connect(&BASEURL, stream) {
+            Ok(stream) => stream,
+            Err(_) => {
+                println!("Error connecting, retrying");
+
+                let connector = TlsConnector::new().unwrap();
+                let stream = TcpStream::connect(format!("{}:443", BASEURL)).unwrap();
+                connector.connect(&BASEURL, stream).unwrap()
+            }
+        }
     };
 
     stream

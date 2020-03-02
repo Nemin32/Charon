@@ -22,7 +22,7 @@ fn get_rioter_profiles(json: serde_json::Value) -> HashSet<String> {
     results
 }
 
-pub fn get_redtracker_profiles(created_to: &str, hs: &mut HashSet<String>) {
+fn get_redtracker_profiles(created_to: &str, hs: &mut HashSet<String>) {
     let request: serde_json::Value = unsafe { serde_json::from_str(&make_request(format!("/{}/redtracker?json_wrap=1&created_to={}", LANGUAGE, created_to))).unwrap() };
 
     if let Some(next) = request["lastCreated"].as_str() {
@@ -47,7 +47,7 @@ fn get_redtracker_profile_ids(profile: &String) -> HashSet<(String, String)> {
     retval
 }
 
-pub fn process_redtracker_profile(name: &String, name_queue: &mut HashMap<String, bool>, processed_ids: &mut HashSet<(String, String)>) -> Vec<Thread>{
+fn process_redtracker_profile(name: &String, name_queue: &mut HashMap<String, bool>, processed_ids: &mut HashSet<(String, String)>) -> Vec<Thread>{
     let mut ids = get_redtracker_profile_ids(name);
     crate::prune_ids(&mut ids, processed_ids);
     let (threads, names) = crate::process_threads(&ids);
@@ -57,3 +57,24 @@ pub fn process_redtracker_profile(name: &String, name_queue: &mut HashMap<String
     threads
 }
 
+pub fn handle_reds(dir: &std::path::Path, nums: &mut HashMap<String, usize>, names: &mut HashMap<String, bool>, processed_ids: &mut HashSet<(String, String)>) {
+    let mut red_names = HashSet::new();
+    get_redtracker_profiles("", &mut red_names);
+    red_names.retain(|elem| !names.get(elem).unwrap_or(&false));
+
+    let mut thread_count = 0;
+
+    for (i, name) in red_names.iter().enumerate() {
+        print!("[{}/{}] {} ", i, red_names.len(), name);
+        let threads = process_redtracker_profile(name, names, processed_ids);
+
+        for post in threads.iter() {
+            crate::write_file(&dir, post, nums);
+            thread_count += 1;
+        }
+
+        crate::write_names(&dir, &names);
+    }
+
+    println!("Final thread-count: {} threads.", thread_count);
+}
