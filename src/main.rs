@@ -1,80 +1,23 @@
 #[macro_use]
 extern crate lazy_static;
 
-use native_tls::TlsConnector;
 use std::collections::HashSet;
 use std::collections::HashMap;
 use std::hash::Hash;
-use std::io::{Read, Write};
-use std::net::TcpStream;
 
-use serde::{Deserialize, Serialize};
+pub mod common;
+use crate::common::*;
 
-// Will contain something like "boards.eune.leagueoflegends.com".
-static mut BASEURL: String = String::new();
-// Will contain something like "hu".
-static mut LANGUAGE: String = String::new();
-// Will contain something like "EUNE".
-static mut REGION: String = String::new();
+pub mod redtracker;
+use crate::redtracker::*;
 
-#[derive(Deserialize, Serialize)]
-struct Link {
-    description: Option<String>,
-    url: Option<String>,
-    image: Option<String>
-}
-
-#[derive(Deserialize, Serialize)]
-struct Thread {
-    poster: String,
-    date: String,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    title: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    subforum: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    embed: Option<Link>,
-
-    up_votes: usize,
-    down_votes: usize,
-    body: String,
-    replies: Vec<Thread>
-}
+pub mod thread;
+use crate::thread::*;
 
 lazy_static! {
     static ref CPU_COUNT: usize = num_cpus::get();
 }
 
-fn make_connection() -> native_tls::TlsStream<TcpStream> {
-    let connector = TlsConnector::new().unwrap();
-    let stream = unsafe { TcpStream::connect(format!("{}:443", BASEURL)).unwrap() };
-    let stream = unsafe {
-        connector
-            .connect(&BASEURL, stream)
-            .unwrap()
-    };
-
-    stream
-}
-
-fn make_request(request: String) -> String {
-    let url = unsafe { format!("GET {} HTTP/1.0\r\nUser-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r\nHost: {}\r\n\r\n", request, BASEURL) };
-    let mut stream = make_connection();
-
-    stream.write(url.as_bytes()).unwrap();
-    let mut resp = vec![];
-
-    stream.read_to_end(&mut resp).unwrap();
-
-    let resp_full = String::from_utf8(resp).unwrap();
-    let split = resp_full
-        .split("\r\n\r\n")
-        .map(|val| val.to_string())
-        .collect::<Vec<String>>();
-
-    split[1].clone()
-}
 
 fn sync_threads<T>(threads: &mut Vec<std::thread::JoinHandle<HashSet<T>>>, results: &mut HashSet<T>)
     where
@@ -89,34 +32,9 @@ fn sync_threads<T>(threads: &mut Vec<std::thread::JoinHandle<HashSet<T>>>, resul
     }
 }
 
-fn collect_ids(json: serde_json::Value) -> HashSet<(String, String)> {
-    use regex::Regex;
-    lazy_static! {
-        static ref REG: Regex =
-            Regex::new(r#"data-application-id="(.*?)" data-discussion-id="(.*?)""#).unwrap();
-    }
 
-    let mut results: HashSet<(String, String)> = HashSet::new();
-
-    if let Some(json_results) = json["results"].as_str() {
-        for capture in REG.captures_iter(&json_results) {
-            let tuple: (String, String) = (String::from(&capture[1]), String::from(&capture[2]));
-            results.insert(tuple);
-        }
-    }
-
-    if let Some(json_results) = json["discussions"].as_str() {
-        for capture in REG.captures_iter(&json_results) {
-            let tuple: (String, String) = (String::from(&capture[1]), String::from(&capture[2]));
-            results.insert(tuple);
-        }
-    }
-
-    results
-}
-
-fn get_user_ids(name: &String) -> HashSet<(String, String)> {
-    let initial_response = unsafe { make_request(format!("/{}/player/{}/{}?json_wrap=1", LANGUAGE, REGION, name)) };
+fn get_user_ids(name: String) -> HashSet<(String, String)> {
+    let initial_response = make_request(name.clone());
 
     if let Ok(json) = serde_json::from_str(&initial_response) {
         let json: serde_json::Value = json;
@@ -131,13 +49,9 @@ fn get_user_ids(name: &String) -> HashSet<(String, String)> {
             for round in 1..rounds {
                 let name = name.clone();
                 threads.push(std::thread::spawn(move || {
-                    let url = unsafe {
-                        format!( "/{}/player/{}/{}?json_wrap=1&num_loaded={}",
-                                 LANGUAGE,
-                                 REGION,
-                                 name,
-                                 50 + round * 50)
-                    };
+                    let url = format!("{}&num_loaded={}",
+                                      name,
+                                      50 + round * 50);
 
                     let response = make_request(url);
                     let json: serde_json::Value = serde_json::from_str(&response).unwrap();
@@ -157,11 +71,6 @@ fn get_user_ids(name: &String) -> HashSet<(String, String)> {
         print!(" ERROR! Couldn't process {}. ", name);
         HashSet::new()
     }
-}
-
-fn download_post(app_id: &String, disc_id: &String) -> serde_json::Value {
-    let url = format!("/api/{}/discussions/{}", app_id, disc_id);
-    serde_json::from_str(&make_request(url)).unwrap()
 }
 
 fn process_raw_thread(root: &serde_json::Value, head: bool, names: &mut HashSet<String>) -> Thread {
@@ -306,7 +215,7 @@ fn process_threads(ids: &HashSet<(String, String)>) -> (Vec<Thread>, HashSet<Str
         threads.push(std::thread::spawn(move || {
             let mut names = HashSet::new();
 
-            (process_raw_thread(&download_post(&app_id, &disc_id)["discussion"], true, &mut names), names)
+            (process_raw_thread(&download_post_by_id(&app_id, &disc_id)["discussion"], true, &mut names), names)
         }));
 
         if threads.len() >= *CPU_COUNT {
@@ -345,14 +254,30 @@ fn process_threads(ids: &HashSet<(String, String)>) -> (Vec<Thread>, HashSet<Str
     (results, names)
 }
 
-fn add_names(names: HashSet<String>, name: &String, name_queue: &mut HashMap<String, bool>) {
+fn add_names(mut names: HashSet<String>, name: &String, name_queue: &mut HashMap<String, bool>) {
     name_queue.insert(name.to_string(), true);
-
-    let mut names = names.clone();
     names.retain(|elem| {name_queue.contains_key(elem) == false});
 
     for name in names {
         name_queue.insert(name, false);
+    }
+}
+
+fn write_names(dir: &std::path::Path, name_queue: &HashMap<String, bool>) {
+    use std::io::Write;
+
+    let name1 = dir.clone().join("unprocessed.txt");
+    let name2 = dir.clone().join("processed.txt");
+
+    let mut unp = std::fs::File::create(name1).unwrap();
+    let mut p = std::fs::File::create(name2).unwrap();
+
+    for (name, processed) in name_queue {
+        if !processed {
+            let _ = write!(unp, "{}\n", name);
+        } else {
+            let _ = write!(p, "{}\n", name);
+        }
     }
 }
 
@@ -361,7 +286,8 @@ fn prune_ids(ids: &mut HashSet<(String, String)>, processed_ids: &mut HashSet<(S
 }
 
 fn process_player(name: &String, name_queue: &mut HashMap<String, bool>, processed_ids: &mut HashSet<(String, String)>) -> Vec<Thread> {
-    let mut ids = get_user_ids(name);
+    let name_request = unsafe { format!("/{}/player/{}/{}?json_wrap=1", LANGUAGE, REGION, name) };
+    let mut ids = get_user_ids(name_request);
     prune_ids(&mut ids, processed_ids);
     let (threads, names) = process_threads(&ids);
 
@@ -370,13 +296,91 @@ fn process_player(name: &String, name_queue: &mut HashMap<String, bool>, process
     threads
 }
 
+fn load_names(dir: &std::path::Path) -> HashMap<String, bool> {
+    let mut names = HashMap::new();
+
+    let unp = dir.clone().join("unprocessed.txt");
+    let p = dir.clone().join("processed.txt");
+
+    if let Ok(name_string) = std::fs::read_to_string(&unp) {
+        for line in name_string.lines() {
+            names.insert(line.to_string(), false);
+        }
+    }
+
+    if let Ok(name_string) = std::fs::read_to_string(&p) {
+        for line in name_string.lines() {
+            names.insert(line.to_string(), true);
+        }
+    }
+
+    /*if let Ok(entries) = std::fs::read_dir(&dir) {
+        for folder in entries {
+            if let Ok(folder) = folder {
+                let name = folder.file_name().into_string();
+
+                if let Ok(name) = name {
+                    names.insert(name, true);
+                }
+            }
+        }
+    }*/
+
+    names
+}
+
+fn handle_names(dir: &std::path::Path, nums: &mut HashMap<String, usize>, names: &mut HashMap<String, bool>, processed_ids: &mut HashSet<(String, String)>) {
+    let mut thread_count = 0;
+
+    loop {
+        if names.iter().all(|(_, val)| {*val}) {break;}
+
+        let (done, all) = {
+            let mut done = 0;
+
+            for (_, val) in names.iter() {
+                if *val {done+=1;}
+            }
+
+            (done, names.len())
+        };
+
+        let name: Option<String> = {
+            let mut retval = None;
+            for (candidate, processed) in names.iter() {
+                if !processed {
+                    retval = Some(candidate.clone());
+                    break;
+                }
+            }
+            retval
+        };
+
+
+        if let Some(name) = name {
+            print!("[{}/{} ({}%) ({})] {} ", done, all, (((done as f64)/(all as f64))*100.0) as usize, thread_count, name);
+            let threads = process_player(&name, names, processed_ids);
+
+            if threads.len() > 0 {
+                for post in threads.iter() {
+                    write_file(&dir, post, nums);
+                    thread_count += 1;
+                }
+            }
+
+            write_names(&dir, &names);
+        }
+    }
+
+    println!("Final thread-count: {} threads.", thread_count);
+}
+
 fn main() {
     println!("This is CHARON, the Boards-backupper.");
 
-    let mut names: HashMap<String, bool> = HashMap::new();
-    let mut ids: HashSet<(String, String)> = HashSet::new();
+    let mut processed_ids: HashSet<(String, String)> = HashSet::new();
     let mut nums = std::collections::HashMap::new();
-    let mut thread_count = 0;
+
 
     unsafe {
         println!("Which region do you want to save? [EUNE]");
@@ -408,15 +412,23 @@ fn main() {
         }
     }
 
-    println!("Enter a name which will be used to start the process from (Be mindful of capitalization!): ");
+    let dirname = unsafe { format!("./backup_{}_{}", REGION, LANGUAGE) };
+    let dir = std::path::Path::new(&dirname);
+    let _ = std::fs::create_dir(dir.clone());
+
+    let mut names: HashMap<String, bool> = load_names(&dir);
+
+    println!("Loaded {} names.", names.len());
+
+    println!("Do you want to download the Red Tracker or do a forum crawl? [red/crawl]");
     let mut line = {
         let mut line = String::new();
         std::io::stdin().read_line(&mut line).unwrap();
         line.trim_end().to_string()
     };
 
-    while line == "" {
-        println!("You must enter a name.");
+    while line != "red" && line != "crawl" {
+        println!("You must enter either 'red' or 'crawl'.");
         line = {
             let mut line = String::new();
             std::io::stdin().read_line(&mut line).unwrap();
@@ -424,53 +436,33 @@ fn main() {
         };
     }
 
-    names.insert(line.clone(), false);
+    if line == "red" {
+        handle_reds(&dir, &mut nums, &mut names, &mut processed_ids);
+    } else {
+        if names.len() == 0 {
+            println!("Enter a name which will be used to start the process from (Be mindful of capitalization!): ");
+            let mut line = {
+                let mut line = String::new();
+                std::io::stdin().read_line(&mut line).unwrap();
+                line.trim_end().to_string()
+            };
 
-    let dirname = unsafe { format!("./backup_{}_{}", REGION, LANGUAGE) };
-    let dir = std::path::Path::new(&dirname);
-    let _ = std::fs::create_dir(dir.clone());
-
-    unsafe {
-        println!("You are now downloading {}'s posts from the {} region and {} language into {}.", line, REGION, LANGUAGE, dir.display());
-    }
-
-    loop {
-        if names.iter().all(|(_, val)| {*val}) {break;}
-
-        let (done, all) = {
-            let mut done = 0;
-
-            for (_, val) in names.iter() {
-                if *val {done+=1;}
+            while line == "" {
+                println!("You must enter a name.");
+                line = {
+                    let mut line = String::new();
+                    std::io::stdin().read_line(&mut line).unwrap();
+                    line.trim_end().to_string()
+                };
             }
 
-            (done, names.len())
-        };
+            names.insert(line.clone(), false);
 
-        let name: Option<String> = {
-            let mut retval = None;
-            for (candidate, processed) in names.iter() {
-                if !processed {
-                    retval = Some(candidate.clone());
-                    break;
-                }
-            }
-            retval
-        };
-
-
-        if let Some(name) = name {
-            print!("[{}/{} ({}%) ({})] {} ", done, all, (((done as f64)/(all as f64))*100.0) as usize, thread_count, name);
-            let threads = process_player(&name, &mut names, &mut ids);
-
-            if threads.len() > 0 {
-                for post in threads.iter() {
-                    write_file(&dir, post, &mut nums);
-                    thread_count += 1;
-                }
+            unsafe {
+                println!("You are now downloading {}'s posts from the {} region and {} language into {}.", line, REGION, LANGUAGE, dir.display());
             }
         }
-    }
 
-    println!("Final thread-count: {} threads.", thread_count);
+        handle_names(&dir, &mut nums, &mut names, &mut processed_ids);
+    }
 }
