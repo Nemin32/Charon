@@ -1,5 +1,10 @@
-language: rust 
+language: rust
 cache: cargo
 os:
  - windows
- - linux
+
+deploy:
+  skip_cleanup: true
+  provider: releases
+  file: "target/debug/charon.exe"
+  draft: true
