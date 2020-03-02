@@ -11,4 +11,5 @@ deploy:
   provider: releases
   token: $GH_TOKEN
   file: "target\\release\\charon.exe"
-  draft: true
+  on:
+    tags: true
