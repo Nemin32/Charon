@@ -63,10 +63,11 @@ which will download the dependencies and run the program.
 While the program can handle the EUNE/HU region well, I haven't tested it
 anywhere else, so if you can just do that, that's already very helpful.
 
-Also, in the unlikely case you need to restart the application, it sadly has no
+~~Also, in the unlikely case you need to restart the application, it sadly has no
 idea how much has it already processed, so it'll start again from scratch. This
 is obviously undesirable, but I wanted to quickly whip up a working version. If
-you can manage to patch this in, please open a pull request.
+you can manage to patch this in, please open a pull request.~~
+This is now added, but could be improved upon.
 
 And, to be frank, any kind of improvement is very much appreciated. **The Boards
 might die, but its content doesn't have to. It all comes down to us.**
