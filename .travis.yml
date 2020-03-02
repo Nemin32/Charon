@@ -6,5 +6,6 @@ os:
 deploy:
   skip_cleanup: true
   provider: releases
-  file: "target/debug/charon.exe"
+  token: $GH_TOKEN
+  file: ".\\target\\debug\\charon.exe"
   draft: true
