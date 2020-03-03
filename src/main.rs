@@ -24,10 +24,10 @@ fn sync_threads<T>(threads: &mut Vec<std::thread::JoinHandle<HashSet<T>>>, resul
     T: Eq + Hash,
 {
     for t in threads.drain(..) {
-        let arr = t.join().unwrap();
-
-        for elem in arr {
-            results.insert(elem);
+        if let Ok(arr) = t.join() {
+            results.extend(arr);
+        } else {
+            println!("Error while syncing thread.");
         }
     }
 }
@@ -80,21 +80,21 @@ fn process_raw_thread(root: &serde_json::Value, head: bool, names: &mut HashSet<
         poster: String::from(
                     root["user"]["name"]
                     .as_str()
-                    .unwrap_or("[NEM SIKERÜLT KIOLVASNI]"),
+                    .unwrap_or("[COULD NOT READ POSTER]"),
                     ),
                     date: String::from(
                         root["createdAt"]
                         .as_str()
-                        .unwrap_or("[NEM SIKERÜLT KIOLVASNI]"),
+                        .unwrap_or("[COULDN'T READ DATE]"),
                         ),
                         up_votes: root["upVotes"].as_u64().unwrap().try_into().unwrap_or(0),
                         down_votes: root["downVotes"].as_u64().unwrap().try_into().unwrap_or(0),
                         replies: Vec::new(),
                         body: {
                             if head {
-                                String::from(root["content"]["body"].as_str().unwrap_or("[ÜRES]"))
+                                String::from(root["content"]["body"].as_str().unwrap_or("[BODY IS EMPTY]"))
                             } else {
-                                String::from(root["message"].as_str().unwrap_or("[ÜRES]"))
+                                String::from(root["message"].as_str().unwrap_or("[BODY IS EMPTY]"))
                             }
                         },
                         title: {
@@ -102,7 +102,7 @@ fn process_raw_thread(root: &serde_json::Value, head: bool, names: &mut HashSet<
                                 Some(String::from(
                                         root["title"]
                                         .as_str()
-                                        .unwrap_or("[NEM SIKERÜLT KIOLVVASNI]")))
+                                        .unwrap_or("[COULDN'T READ TITLE]")))
                             } else {
                                 None
                             }
@@ -112,9 +112,7 @@ fn process_raw_thread(root: &serde_json::Value, head: bool, names: &mut HashSet<
                                 Some(String::from(
                                         root["application"]["name"]
                                         .as_str()
-                                        .unwrap_or("[NEM SIKERÜLT KIOLVVASNI]")))
-                            } else {
-                                None
+                                        .unwrap_or("[COULDN'T READ SUBFORUM]"))) } else { None
                             }
                         },
                         embed: {
@@ -122,7 +120,7 @@ fn process_raw_thread(root: &serde_json::Value, head: bool, names: &mut HashSet<
                                 if let Some(shared_link) = link_root.as_object() {
                                     let description = {
                                         if let Some(node) = shared_link.get("description") {
-                                            Some(String::from(node.as_str().unwrap_or("[NINCS LEÍRÁS]")))
+                                            Some(String::from(node.as_str().unwrap_or("[NO DESCRIPTION]")))
                                         } else {
                                             None
                                         }
@@ -130,7 +128,7 @@ fn process_raw_thread(root: &serde_json::Value, head: bool, names: &mut HashSet<
 
                                     let url = {
                                         if let Some(node) = shared_link.get("url") {
-                                            Some(String::from(node.as_str().unwrap_or("[ROSSZ LINK]")))
+                                            Some(String::from(node.as_str().unwrap_or("[COULDN'T READ LINK]")))
                                         } else {
                                             None
                                         }
@@ -138,7 +136,7 @@ fn process_raw_thread(root: &serde_json::Value, head: bool, names: &mut HashSet<
 
                                     let image = {
                                         if let Some(node) = shared_link.get("image") {
-                                            Some(String::from(node.as_str().unwrap_or("[NINCS KÉP]")))
+                                            Some(String::from(node.as_str().unwrap_or("[COULDN'T READ IMAGE LINK]")))
                                         } else {
                                             None
                                         }
