@@ -12,23 +12,32 @@ pub static mut REGION: String = String::new();
 
 use crate::thread::*;
 
-fn make_connection() -> native_tls::TlsStream<TcpStream> {
-    let connector = TlsConnector::new().unwrap();
-    let stream = unsafe { TcpStream::connect(format!("{}:443", BASEURL)).unwrap() };
-    let stream = unsafe {
-        match connector.connect(&BASEURL, stream) {
-            Ok(stream) => stream,
-            Err(_) => {
-                println!("Error connecting, retrying");
-
-                let connector = TlsConnector::new().unwrap();
-                let stream = TcpStream::connect(format!("{}:443", BASEURL)).unwrap();
-                connector.connect(&BASEURL, stream).unwrap()
+fn repeat_connection(depth: usize) -> native_tls::TlsStream<TcpStream> {
+    if depth > 0 {
+        let connector = TlsConnector::new().unwrap();
+        unsafe {
+            match TcpStream::connect(format!("{}:443", BASEURL)) {
+                Ok(stream) =>
+                    match connector.connect(&BASEURL, stream) {
+                        Ok(stream) => stream,
+                        Err(_) =>  {
+                            println!("Error connecting, attempt {}/5", 5-depth);
+                            repeat_connection(depth-1)
+                        }
+                    },
+                Err(_) => {
+                    println!("Error connecting, attempt {}/5", 5-depth);
+                    repeat_connection(depth-1)
+                }
             }
         }
-    };
+    } else {
+        panic!("Ran out of retry attempts!")
+    }
+}
 
-    stream
+fn make_connection() -> native_tls::TlsStream<TcpStream> {
+    repeat_connection(5)
 }
 
 pub fn make_request(request: String) -> String {
@@ -80,7 +89,7 @@ pub fn collect_ids(json: serde_json::Value) -> HashSet<(String, String)> {
     results
 }
 
-fn process_raw_thread(root: &serde_json::Value, head: bool) -> Thread {
+pub fn process_raw_thread(root: &serde_json::Value, head: bool) -> Thread {
     use std::convert::TryInto;
 
     let mut thread = Thread {
@@ -94,8 +103,8 @@ fn process_raw_thread(root: &serde_json::Value, head: bool) -> Thread {
                         .as_str()
                         .unwrap_or("[COULDN'T READ DATE]"),
                         ),
-                        up_votes: root["upVotes"].as_u64().unwrap().try_into().unwrap_or(0),
-                        down_votes: root["downVotes"].as_u64().unwrap().try_into().unwrap_or(0),
+                        up_votes: root["upVotes"].as_u64().unwrap_or(0).try_into().unwrap_or(0),
+                        down_votes: root["downVotes"].as_u64().unwrap_or(0).try_into().unwrap_or(0),
                         replies: Vec::new(),
                         body: {
                             if head {
