@@ -26,7 +26,7 @@ fn repeat_connection(depth: usize) -> native_tls::TlsStream<TcpStream> {
                         }
                     },
                 Err(_) => {
-                    println!("Error connecting, attempt {}/5", 5-depth);
+                    println!("Error connecting, attempt {}/5.", 5-depth);
                     repeat_connection(depth-1)
                 }
             }
@@ -40,22 +40,41 @@ fn make_connection() -> native_tls::TlsStream<TcpStream> {
     repeat_connection(5)
 }
 
+fn repeat_request(request: String, depth: usize) -> String {
+    use regex::Regex;
+
+    lazy_static! {
+        static ref OK: Regex = Regex::new("HTTP/1.1 200 OK").unwrap();
+    }
+
+    if depth > 0 {
+        let url = unsafe { format!("GET {} HTTP/1.0\r\nUser-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r\nHost: {}\r\n\r\n", request, BASEURL) };
+        let mut stream = make_connection();
+
+        stream.write(url.as_bytes()).unwrap();
+        let mut resp = vec![];
+
+        stream.read_to_end(&mut resp).unwrap();
+
+        let resp_full = String::from_utf8(resp).unwrap();
+        let split = resp_full
+            .split("\r\n\r\n")
+            .map(|val| val.to_string())
+            .collect::<Vec<String>>();
+
+        if OK.is_match(&split[0]) {
+            split[1].clone()
+        } else {
+            println!("Error making request, attempt {}/5.", 5-depth);
+            repeat_request(request, depth-1)
+        }
+    } else {
+        panic!("Ran out of request attempts!");
+    }
+}
+
 pub fn make_request(request: String) -> String {
-    let url = unsafe { format!("GET {} HTTP/1.0\r\nUser-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r\nHost: {}\r\n\r\n", request, BASEURL) };
-    let mut stream = make_connection();
-
-    stream.write(url.as_bytes()).unwrap();
-    let mut resp = vec![];
-
-    stream.read_to_end(&mut resp).unwrap();
-
-    let resp_full = String::from_utf8(resp).unwrap();
-    let split = resp_full
-        .split("\r\n\r\n")
-        .map(|val| val.to_string())
-        .collect::<Vec<String>>();
-
-    split[1].clone()
+    repeat_request(request, 5)
 }
 
 pub fn download_post_by_id(app_id: &String, disc_id: &String) -> serde_json::Value {
