@@ -118,6 +118,14 @@ fn process_raw_thread(root: &serde_json::Value, head: bool, names: &mut HashSet<
                         embed: {
                             if let Some(link_root) = root["content"].get("sharedLink") {
                                 if let Some(shared_link) = link_root.as_object() {
+                                    let title = {
+                                        if let Some(node) = shared_link.get("title") {
+                                            Some(String::from(node.as_str().unwrap_or("[NO TITLE]")))
+                                        } else {
+                                            None
+                                        }
+                                    };
+
                                     let description = {
                                         if let Some(node) = shared_link.get("description") {
                                             Some(String::from(node.as_str().unwrap_or("[NO DESCRIPTION]")))
@@ -142,7 +150,7 @@ fn process_raw_thread(root: &serde_json::Value, head: bool, names: &mut HashSet<
                                         }
                                     };
 
-                                    Some(Link { description, url, image })
+                                    Some(Link { title, description, url, image })
                                 } else {
                                     None
                                 }
