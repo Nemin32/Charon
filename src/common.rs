@@ -5,11 +5,6 @@ use std::collections::HashSet;
 
 // Will contain something like "boards.eune.leagueoflegends.com".
 pub static mut BASEURL: String = String::new();
-// Will contain something like "hu".
-pub static mut LANGUAGE: String = String::new();
-// Will contain something like "EUNE".
-pub static mut REGION: String = String::new();
-
 const MAX_ATTEMPTS: usize = 10_000;
 
 use crate::thread::*;
