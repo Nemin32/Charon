@@ -10,71 +10,78 @@ pub static mut LANGUAGE: String = String::new();
 // Will contain something like "EUNE".
 pub static mut REGION: String = String::new();
 
+const MAX_ATTEMPTS: usize = 10_000;
+
 use crate::thread::*;
 
-fn repeat_connection(depth: usize) -> native_tls::TlsStream<TcpStream> {
-    if depth > 0 {
+fn repeat_connection() -> native_tls::TlsStream<TcpStream> {
+    for depth in 0..MAX_ATTEMPTS {
         let connector = TlsConnector::new().unwrap();
         unsafe {
             match TcpStream::connect(format!("{}:443", BASEURL)) {
                 Ok(stream) =>
                     match connector.connect(&BASEURL, stream) {
-                        Ok(stream) => stream,
+                        Ok(stream) => return stream,
                         Err(_) =>  {
-                            println!("Error connecting, attempt {}/5", 5-depth);
-                            repeat_connection(depth-1)
+                            if depth > 0 && depth % 500 == 0 {
+                                println!("Error connecting, attempt {}/{}", depth, MAX_ATTEMPTS);
+                            }
+                            continue;
                         }
                     },
                 Err(_) => {
-                    println!("Error connecting, attempt {}/5.", 5-depth);
-                    repeat_connection(depth-1)
+                    if depth > 0 && depth % 500 == 0 {
+                        println!("Error connecting, attempt {}/{}", depth, MAX_ATTEMPTS);
+                    }
+                    continue;
                 }
             }
         }
-    } else {
-        panic!("Ran out of retry attempts!")
     }
+
+    panic!("Ran out of retry attempts!")
 }
 
 fn make_connection() -> native_tls::TlsStream<TcpStream> {
-    repeat_connection(5)
+    repeat_connection()
 }
 
-fn repeat_request(request: String, depth: usize) -> String {
+fn repeat_request(request: String) -> String {
     use regex::Regex;
 
     lazy_static! {
         static ref OK: Regex = Regex::new("HTTP/1.1 200 OK").unwrap();
     }
 
-    if depth > 0 {
-        let url = unsafe { format!("GET {} HTTP/1.0\r\nUser-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r\nHost: {}\r\n\r\n", request, BASEURL) };
+    for depth in 0..MAX_ATTEMPTS {
         let mut stream = make_connection();
+        let mut resp = vec![];
+        let url = unsafe { format!("GET {} HTTP/1.0\r\nUser-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r\nHost: {}\r\n\r\n", request, BASEURL) };
 
         stream.write(url.as_bytes()).unwrap();
-        let mut resp = vec![];
-
         stream.read_to_end(&mut resp).unwrap();
-
         let resp_full = String::from_utf8(resp).unwrap();
+
         let split = resp_full
             .split("\r\n\r\n")
             .map(|val| val.to_string())
             .collect::<Vec<String>>();
 
         if OK.is_match(&split[0]) {
-            split[1].clone()
+            return split[1].clone()
         } else {
-            println!("Error making request, attempt {}/5.", 5-depth);
-            repeat_request(request, depth-1)
+            if depth > 0 && depth % 500 == 0 {
+                println!("Error connecting, attempt {}/{}", depth, MAX_ATTEMPTS);
+            }
+            continue;
         }
-    } else {
-        panic!("Ran out of request attempts!");
     }
+
+    panic!("Ran out of request attempts!");
 }
 
 pub fn make_request(request: String) -> String {
-    repeat_request(request, 5)
+    repeat_request(request)
 }
 
 pub fn download_post_by_id(app_id: &String, disc_id: &String) -> serde_json::Value {

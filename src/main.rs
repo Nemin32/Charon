@@ -88,24 +88,22 @@ fn main() {
         let max_posts = frontpage_json["totalDiscussionsSoft"].as_u64().unwrap().try_into().unwrap();
         let ids: Vec<(String, String)> = get_ids(frontpage_json);
 
-        let mut threads = vec![];
         let mut posts = vec![];
+        let mut threads = vec![];
 
         for (app, disc) in &ids {
             let app = app.clone();
             let disc = disc.clone();
             threads.push(std::thread::spawn(move || download_thread(app, disc)));
-            if threads.len() >= *CPU_COUNT*3 {catch_up(&mut threads, &mut posts)};
+            //if threads.len() >= *CPU_COUNT*10 {catch_up(&mut threads, &mut posts)};
 
             downloaded += 1;
-
             if downloaded % 100 == 0 {
                 println!("{}/{}", downloaded, max_posts);
             }
         }
 
         catch_up(&mut threads, &mut posts);
-
         println!("Writing posts.");
         write_posts(&region, &posts, &mut post_number);
 
