@@ -39,7 +39,7 @@ fn download_thread(app: String, disc: String) -> Option<Thread> {
 
     if let Ok(json)= serde_json::from_str(&request) {
         let json: serde_json::Value = json;
-        return Some(crate::common::process_raw_thread(&json["discussion"], true));
+        return Some(crate::common::process_raw_thread(&json["discussion"], true, disc));
     }
 
     None

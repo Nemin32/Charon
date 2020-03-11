@@ -10,6 +10,7 @@ pub struct Link {
 
 #[derive(Deserialize, Serialize)]
 pub struct Thread {
+    pub id: String,
     pub poster: String,
     pub date: String,
 

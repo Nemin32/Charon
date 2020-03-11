@@ -110,103 +110,104 @@ pub fn collect_ids(json: serde_json::Value) -> HashSet<(String, String)> {
     results
 }
 
-pub fn process_raw_thread(root: &serde_json::Value, head: bool) -> Thread {
+pub fn process_raw_thread(root: &serde_json::Value, head: bool, disc_id: std::string::String) -> Thread {
     use std::convert::TryInto;
 
     let mut thread = Thread {
+        id: disc_id,
         poster: String::from(
-                    root["user"]["name"]
-                    .as_str()
-                    .unwrap_or("[COULD NOT READ POSTER]"),
-                    ),
-                    date: String::from(
-                        root["createdAt"]
+            root["user"]["name"]
+            .as_str()
+            .unwrap_or("[COULD NOT READ POSTER]"),
+            ),
+        date: String::from(
+            root["createdAt"]
+            .as_str()
+            .unwrap_or("[COULDN'T READ DATE]"),
+        ),
+        up_votes: root["upVotes"].as_u64().unwrap_or(0).try_into().unwrap_or(0),
+        down_votes: root["downVotes"].as_u64().unwrap_or(0).try_into().unwrap_or(0),
+        replies: Vec::new(),
+        body: {
+            if head {
+                String::from(root["content"]["body"].as_str().unwrap_or("[BODY IS EMPTY]"))
+            } else {
+                String::from(root["message"].as_str().unwrap_or("[BODY IS EMPTY]"))
+            }
+        },
+        title: {
+            if head {
+                Some(String::from(
+                        root["title"]
                         .as_str()
-                        .unwrap_or("[COULDN'T READ DATE]"),
-                        ),
-                        up_votes: root["upVotes"].as_u64().unwrap_or(0).try_into().unwrap_or(0),
-                        down_votes: root["downVotes"].as_u64().unwrap_or(0).try_into().unwrap_or(0),
-                        replies: Vec::new(),
-                        body: {
-                            if head {
-                                String::from(root["content"]["body"].as_str().unwrap_or("[BODY IS EMPTY]"))
-                            } else {
-                                String::from(root["message"].as_str().unwrap_or("[BODY IS EMPTY]"))
-                            }
-                        },
-                        title: {
-                            if head {
-                                Some(String::from(
-                                        root["title"]
-                                        .as_str()
-                                        .unwrap_or("[COULDN'T READ TITLE]")))
-                            } else {
-                                None
-                            }
-                        },
-                        subforum: {
-                            if head {
-                                Some(String::from(
-                                        root["application"]["name"]
-                                        .as_str()
-                                        .unwrap_or("[COULDN'T READ SUBFORUM]"))) } else { None
-                            }
-                        },
-                        embed: {
-                            if let Some(link_root) = root["content"].get("sharedLink") {
-                                if let Some(shared_link) = link_root.as_object() {
-                                    let title = {
-                                        if let Some(node) = shared_link.get("title") {
-                                            Some(String::from(node.as_str().unwrap_or("[NO TITLE]")))
-                                        } else {
-                                            None
-                                        }
-                                    };
-
-                                    let description = {
-                                        if let Some(node) = shared_link.get("description") {
-                                            Some(String::from(node.as_str().unwrap_or("[NO DESCRIPTION]")))
-                                        } else {
-                                            None
-                                        }
-                                    };
-
-                                    let url = {
-                                        if let Some(node) = shared_link.get("url") {
-                                            Some(String::from(node.as_str().unwrap_or("[COULDN'T READ LINK]")))
-                                        } else {
-                                            None
-                                        }
-                                    };
-
-                                    let image = {
-                                        if let Some(node) = shared_link.get("image") {
-                                            Some(String::from(node.as_str().unwrap_or("[COULDN'T READ IMAGE LINK]")))
-                                        } else {
-                                            None
-                                        }
-                                    };
-
-                                    Some(Link { title, description, url, image })
-                                } else {
-                                    None
-                                }
-                            } else {
-                                None
-                            }
+                        .unwrap_or("[COULDN'T READ TITLE]")))
+            } else {
+                None
+            }
+        },
+        subforum: {
+            if head {
+                Some(String::from(
+                        root["application"]["name"]
+                        .as_str()
+                        .unwrap_or("[COULDN'T READ SUBFORUM]"))) } else { None
+            }
+        },
+        embed: {
+            if let Some(link_root) = root["content"].get("sharedLink") {
+                if let Some(shared_link) = link_root.as_object() {
+                    let title = {
+                        if let Some(node) = shared_link.get("title") {
+                            Some(String::from(node.as_str().unwrap_or("[NO TITLE]")))
+                        } else {
+                            None
                         }
+                    };
+
+                    let description = {
+                        if let Some(node) = shared_link.get("description") {
+                            Some(String::from(node.as_str().unwrap_or("[NO DESCRIPTION]")))
+                        } else {
+                            None
+                        }
+                    };
+
+                    let url = {
+                        if let Some(node) = shared_link.get("url") {
+                            Some(String::from(node.as_str().unwrap_or("[COULDN'T READ LINK]")))
+                        } else {
+                            None
+                        }
+                    };
+
+                    let image = {
+                        if let Some(node) = shared_link.get("image") {
+                            Some(String::from(node.as_str().unwrap_or("[COULDN'T READ IMAGE LINK]")))
+                        } else {
+                            None
+                        }
+                    };
+
+                    Some(Link { title, description, url, image })
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
     };
 
     if head {
         if let Some(comments) = root["comments"]["comments"].as_array() {
             for msg in comments {
-                thread.replies.push(process_raw_thread(msg, false));
+                thread.replies.push(process_raw_thread(msg, false, String::from("")));
             }
         }
     } else {
         if let Some(comments) = root["replies"]["comments"].as_array() {
             for msg in comments {
-                thread.replies.push(process_raw_thread(msg, false));
+                thread.replies.push(process_raw_thread(msg, false, String::from("")));
             }
         }
     }
