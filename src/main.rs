@@ -86,20 +86,30 @@ fn main() {
     let mut region = String::new();
 
     while region == "" || region == "help" || region.len() != 8 {
-        println!("Please enter a region ID (enter 'help' if you don't know what this is):");
-        region = {
-            let mut region = String::new();
-            std::io::stdin().read_line(&mut region).unwrap();
-            region.trim_end().to_string()
+        println!("\nPlease enter the name of the region you want to download\n\nPossible are: \nna\noce\nru\nlan\nlas\ntr\neu_en\neu_pl\neu_es\neu_hu\neu_ro\neu_fr\neu_it\neu_de\neu_el\neu_cs\n");
+        
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input).unwrap();
+        
+        match input.trim_end() {
+            "na" => region = String::from("PEr1qIcT"),
+            "oce" => region = String::from("WVnBe8UU"),
+            "ru" => region = String::from("YxZxFq5Y"),
+            "lan" => region = String::from("yEGyAjrt"),
+            "las" => region = String::from("mKBkZy5X"),
+            "tr" => region = String::from("Fq2PpZPl"),
+            "eu_en" => region = String::from("0oazE84H"),
+            "eu_pl" => region = String::from("sIEqJJVp"),
+            "eu_es" => region = String::from("qxYYk3X8"),
+            "eu_hu" => region = String::from("q98U6Ykw"),
+            "eu_ro" => region = String::from("c39j7NcX"),
+            "eu_fr" => region = String::from("FRrE0ye4"),
+            "eu_it" => region = String::from("VYn4uGyi"),
+            "eu_de" => region = String::from("6EJWUPYU"),
+            "eu_el" => region = String::from("LgAALjkc"),
+            "eu_cs" => region = String::from("adFfUN3R"),
+            _ =>  {println!("\nInvalid region name");continue;}
         };
-
-        if region == "help" {
-            println!("\nA region ID is the ID of the forum itself. The easiest way to get this is to collect it using a browser's inspect element function.\nSimply right click on the button that loads more threads on the front page and select Inspect Element (or however it is named on your browser.)\nAfterwards look for a line like this:\n\n'<a data-href=\"/api/[A sequence of characters and numbers]/discussions?sort_type=hot\" class=\"box show-more\" data-count=\"50\">'\n\nWhat you need is the sequence between brackets. For example:\n\n'<a data-href=\"/api/q98U6Ykw/discussions?sort_type=hot\" class=\"box show-more\" data-count=\"50\">'\n\nThe region ID is: q98U6Ykw\n\n")
-        } else {
-            if region.len() != 8 {
-                println!("Region IDs are 8 characters in length.");
-            }
-        }
     }
 
     let path_string = format!("./backup_{}", region);
