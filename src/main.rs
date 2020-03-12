@@ -92,22 +92,70 @@ fn main() {
         std::io::stdin().read_line(&mut input).unwrap();
         
         match input.trim_end() {
-            "na" => region = String::from("PEr1qIcT"),
-            "oce" => region = String::from("WVnBe8UU"),
-            "ru" => region = String::from("YxZxFq5Y"),
-            "lan" => region = String::from("yEGyAjrt"),
-            "las" => region = String::from("mKBkZy5X"),
-            "tr" => region = String::from("Fq2PpZPl"),
-            "eu_en" => region = String::from("0oazE84H"),
-            "eu_pl" => region = String::from("sIEqJJVp"),
-            "eu_es" => region = String::from("qxYYk3X8"),
-            "eu_hu" => region = String::from("q98U6Ykw"),
-            "eu_ro" => region = String::from("c39j7NcX"),
-            "eu_fr" => region = String::from("FRrE0ye4"),
-            "eu_it" => region = String::from("VYn4uGyi"),
-            "eu_de" => region = String::from("6EJWUPYU"),
-            "eu_el" => region = String::from("LgAALjkc"),
-            "eu_cs" => region = String::from("adFfUN3R"),
+            "na" => {
+                region = String::from("PEr1qIcT");
+                unsafe {BASEURL = String::from("boards.na.leagueoflegends.com");};
+            },
+            "oce" => {
+                region = String::from("WVnBe8UU");
+                unsafe {BASEURL = String::from("boards.oce.leagueoflegends.com");};
+            },
+            "ru" => {
+                region = String::from("YxZxFq5Y");
+                unsafe {BASEURL = String::from("boards.ru.leagueoflegends.com");};
+            },
+            "lan" => {
+                region = String::from("yEGyAjrt");
+                unsafe {BASEURL = String::from("boards.lan.leagueoflegends.com");};
+            },
+            "las" => {
+                region = String::from("mKBkZy5X");
+                unsafe {BASEURL = String::from("boards.las.leagueoflegends.com");};
+            },
+            "tr" => {
+                region = String::from("Fq2PpZPl");
+                unsafe {BASEURL = String::from("boards.tr.leagueoflegends.com");};
+            },
+            "eu_en" => {
+                region = String::from("0oazE84H");
+                unsafe {BASEURL = String::from("boards.eune.leagueoflegends.com");};
+            },
+            "eu_pl" => {
+                region = String::from("sIEqJJVp");
+                unsafe {BASEURL = String::from("boards.eune.leagueoflegends.com");};
+            },
+            "eu_es" => {
+                region = String::from("qxYYk3X8");
+                unsafe {BASEURL = String::from("boards.eune.leagueoflegends.com");};
+            },
+            "eu_hu" => {
+                region = String::from("q98U6Ykw");
+                unsafe {BASEURL = String::from("boards.eune.leagueoflegends.com");};
+            },
+            "eu_ro" => {
+                region = String::from("c39j7NcX");
+                unsafe {BASEURL = String::from("boards.eune.leagueoflegends.com");};
+            },
+            "eu_fr" => {
+                region = String::from("FRrE0ye4");
+                unsafe {BASEURL = String::from("boards.eune.leagueoflegends.com");};
+            },
+            "eu_it" => {
+                region = String::from("VYn4uGyi");
+                unsafe {BASEURL = String::from("boards.eune.leagueoflegends.com");};
+            },
+            "eu_de" => {
+                region = String::from("6EJWUPYU");
+                unsafe {BASEURL = String::from("boards.eune.leagueoflegends.com");};
+            },
+            "eu_el" => {
+                region = String::from("LgAALjkc");
+                unsafe {BASEURL = String::from("boards.eune.leagueoflegends.com");};
+            },
+            "eu_cs" => {
+                region = String::from("adFfUN3R");
+                unsafe {BASEURL = String::from("boards.eune.leagueoflegends.com");};
+            },
             _ =>  {println!("\nInvalid region name");continue;}
         };
     }
@@ -119,9 +167,6 @@ fn main() {
     let previous = get_previous(&path);
     let mut page = previous / 1000;
     let mut post_number = previous;
-    let mut downloaded = previous;
-
-    unsafe {BASEURL = String::from("boards.eune.leagueoflegends.com");};
 
     loop {
         let frontpage_json: serde_json::Value = download_frontpage(&region, page);
@@ -137,11 +182,6 @@ fn main() {
             let disc = disc.clone();
             threads.push(std::thread::spawn(move || download_thread(app, disc)));
             if threads.len() >= *CPU_COUNT {catch_up(&mut threads, &mut posts)};
-
-            /*downloaded += 1;
-            if downloaded % 100 == 0 {
-                println!("{}/{}", downloaded, max_posts);
-            }*/
         }
 
         catch_up(&mut threads, &mut posts);
